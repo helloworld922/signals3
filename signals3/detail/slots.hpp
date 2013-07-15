@@ -13,7 +13,9 @@
 #include "../connection.hpp"
 #include "atomic_extensions.hpp"
 #include <boost/variant.hpp>
+#include <numeric>
 #include <atomic>
+#include <memory>
 
 namespace boost
 {
@@ -37,13 +39,17 @@ namespace boost
                         slot(const T& func);
 
                     // TODO: what value?
-                    const int disconnected = -1;
+                    const int disconnected = INT_MIN;
 
                 public:
                     typedef ResultType result_type;
                     typedef SlotFunction slot_type;
                     typedef ExtendedSlotFunction extended_slot_type;
                     typedef AtomicInt atomic_int_type;
+
+                    // yeah, probably shouldn't be public, but signal needs access to these
+                    std::shared_ptr<slot<ResultType(Args...), SlotFunction, ExtendedSlotFunction, AtomicInt> > next;
+                    std::weak_ptr<slot<ResultType(Args...), SlotFunction, ExtendedSlotFunction, AtomicInt> > prev;
 
                     slot(const SlotFunction& func) :
                             callback(func), _unusable(0)
