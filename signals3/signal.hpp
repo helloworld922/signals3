@@ -41,17 +41,19 @@ namespace boost
             typename SlotFunction = std::function<Signature>,
             typename ExtendedSlotFunction = typename boost::signals3::detail::extended_signature<Signature>::type,
             typename AtomicInt = std::atomic<int>,
-            typename SharedLock = boost::shared_mutex >
+            typename SharedMutex = boost::shared_mutex >
             class signal;
 
         template<typename ResultType, typename ... Args, typename Combiner, typename Group,
                 typename GroupCompare, typename SlotFunction, typename ExtendedSlotFunction,
-                typename AtomicInt, typename SharedLock>
-            class signal<ResultType(Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, AtomicInt, SharedLock>
+                typename AtomicInt, typename SharedMutex>
+            class signal<ResultType(Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, AtomicInt, SharedMutex>
             {
-                mutable SharedLock _lock;
-                std::shared_ptr< boost::signals3::detail::slot<ResultType(Args...), SlotFunction, ExtendedSlotFunction, AtomicInt> > head;
-                std::shared_ptr< boost::signals3::detail::slot<ResultType(Args...), SlotFunction, ExtendedSlotFunction, AtomicInt> > tail;
+                typedef ::boost::signals3::detail::slot<ResultType(Args...), SlotFunction, ExtendedSlotFunction, AtomicInt> slot_wrapper;
+                typedef ::boost::signals3::signal<ResultType(Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, AtomicInt, SharedMutex> sig_type;
+                mutable SharedMutex _lock;
+                std::shared_ptr< slot_wrapper > head;
+                std::weak_ptr< slot_wrapper > tail;
                 Combiner combiner;
 
                 class iterator
@@ -67,30 +69,29 @@ namespace boost
                         typedef seq<S...> type;
                     };
 
-                    const boost::signals3::signal<ResultType(Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction, AtomicInt, SharedLock>& sig;
-                    std::shared_ptr< boost::signals3::detail::slot<ResultType(Args...), SlotFunction, ExtendedSlotFunction, AtomicInt> > callback;
+                    const sig_type& sig;
+                    std::shared_ptr< slot_wrapper > callback;
                     std::tuple<Args...> params;
 
                     template<int... S>
-                    ResultType call_func(seq<S...>)
+                    ResultType call_func(seq<S...>) const
                     {
                         // TODO: differentiate between standard and extended slots
                         return (*callback)(std::get<S>(params)...);
                     }
 
-                public:
-                    iterator(const boost::signals3::signal<ResultType(Args...),
-                            Combiner, Group, GroupCompare, SlotFunction,
-                            ExtendedSlotFunction, AtomicInt, SharedLock>& sig,
-                            std::shared_ptr<boost::signals3::detail::slot<ResultType(Args...), SlotFunction, ExtendedSlotFunction, AtomicInt> > cb,
-                            Args&&... args) : sig(sig), callback(cb), params(std::forward(args)...)
+                    template<int... S>
+                    ResultType call_func(const connection& conn, seq<S...>) const
                     {
-                        sig._lock.lock_shared();
+                        // TODO: differentiate between standard and extended slots
+                        return (*callback)(conn, std::get<S>(params)...);
                     }
 
-                    ~iterator(void)
+                public:
+                    iterator(const sig_type& sig,
+                            const std::shared_ptr<boost::signals3::detail::slot<ResultType(Args...), SlotFunction, ExtendedSlotFunction, AtomicInt> >& cb,
+                            Args&&... args) : sig(sig), callback(cb), params(std::forward(args)...)
                     {
-                        sig._lock.unlock_shared();
                     }
 
                     bool operator ==(const iterator& rhs) const
@@ -106,10 +107,18 @@ namespace boost
                     /**
                      * Invokes the current slot
                      */
-                    ResultType operator *(void)
+                    ResultType operator *(void) const
                     {
-                        return call_func(typename gens<sizeof...(Args)>::type());
-                        //std::shared_ptr< boost::signals3::detail::slot<ResultType(Args...), SlotFunction, ExtendedSlotFunction, AtomicInt> > callback(s);
+                        if(callback->extended())
+                        {
+                            // TODO: build a connection object
+                            connection conn;
+                            return call_func(conn, typename gens<sizeof...(Args)>::type());
+                        }
+                        else
+                        {
+                            return call_func(typename gens<sizeof...(Args)>::type());
+                        }
                     }
 
                     /**
@@ -117,14 +126,12 @@ namespace boost
                      */
                     iterator& operator++(void)
                     {
-                        if(callback != nullptr)
+                        // assume callback != nullptr
+                        do
                         {
-                            do
-                            {
-                                callback = callback->next;
-                            }
-                            while(callback != nullptr && callback->usable());
+                            callback = callback->next;
                         }
+                        while(callback != nullptr && !callback->usable());
                         return *this;
                     }
                 };
@@ -135,14 +142,37 @@ namespace boost
                 typedef GroupCompare group_compare_type;
                 typedef SlotFunction slot_type;
                 typedef ExtendedSlotFunction extended_slot_type;
-                typedef SharedLock shared_lock_type;
+                typedef SharedMutex shared_lock_type;
 
                 signal(void) : _lock(), head(), tail(), combiner()
                 {}
 
-                typename Combiner::result_type
-                operator()(Args ... args)
+                connection connect(const SlotFunction& f)
                 {
+                    // TODO: could deadlock if called from within emit
+                    std::shared_ptr< slot_wrapper > tslot = std::make_shared< slot_wrapper >(f);
+                    boost::unique_lock<SharedMutex> ulock(_lock);
+                    if(head != nullptr)
+                    {
+                        // TODO: handle insert at begin
+                        std::shared_ptr< slot_wrapper > temp(tail.lock());
+                        temp->next = tslot;
+                        tslot->prev = tail;
+                        tail = tslot;
+                    }
+                    else
+                    {
+                        head = std::move(tslot);
+                        tail = head;
+                    }
+                    connection conn;
+                    return conn;
+                }
+
+                typename Combiner::result_type
+                operator()(Args ... args) const
+                {
+                    boost::shared_lock<SharedMutex> slock(_lock);
                     // TODO: create begin/end iterators
                     iterator begin(*this, head, args...);
                     iterator end(*this, nullptr, args...);

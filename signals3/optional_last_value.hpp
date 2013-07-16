@@ -38,7 +38,7 @@ namespace boost
             typedef void result_type;
 
             template<typename Iter>
-            void operator()(Iter begin, Iter end)
+            void operator()(Iter& begin, Iter& end) const
             {
                 while(begin != end)
                 {

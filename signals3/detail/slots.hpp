@@ -39,17 +39,18 @@ namespace boost
                         slot(const T& func);
 
                     // TODO: what value?
-                    const int disconnected = INT_MIN;
+                    static const int disconnected = INT_MIN;
 
                 public:
+                    typedef slot<ResultType(Args...), SlotFunction, ExtendedSlotFunction, AtomicInt> slot_wrapper;
                     typedef ResultType result_type;
                     typedef SlotFunction slot_type;
                     typedef ExtendedSlotFunction extended_slot_type;
                     typedef AtomicInt atomic_int_type;
 
                     // yeah, probably shouldn't be public, but signal needs access to these
-                    std::shared_ptr<slot<ResultType(Args...), SlotFunction, ExtendedSlotFunction, AtomicInt> > next;
-                    std::weak_ptr<slot<ResultType(Args...), SlotFunction, ExtendedSlotFunction, AtomicInt> > prev;
+                    std::shared_ptr< slot_wrapper > next;
+                    std::weak_ptr< slot_wrapper > prev;
 
                     slot(const SlotFunction& func) :
                             callback(func), _unusable(0)
