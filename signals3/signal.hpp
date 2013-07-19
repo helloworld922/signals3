@@ -1,11 +1,14 @@
-/*
- * signal.hpp
- *
- * (c) 2013 helloworld922
- *
- *  Created on: Jul 13, 2013
- *      Author: helloworld922
- */
+//
+// slots.hpp
+//
+// (c) 2013 helloworld922
+//
+//  Created on: Jul 13, 2013
+//      Author: helloworld922
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
 
 #ifndef BOOST_SIGNALS3_SIGNAL_HPP
 #define BOOST_SIGNALS3_SIGNAL_HPP
@@ -250,81 +253,7 @@ namespace boost
                 {
                     return curr == end;
                 }
-                // TODO: how to implement ->?
-//            ResultType operator->(void) const
-//            {
-//            }
             };
-
-            // ----------------
-            // signal::iterator specialization for void return type
-            // ----------------
-//        template<typename ResultType, typename ... Args, typename Combiner, typename Group,
-//                typename GroupCompare, typename SlotFunction, typename ExtendedSlotFunction,
-//                typename AtomicInt, typename Mutex>
-//            template<int dummy>
-//                class signal< ResultType
-//                (Args...), Combiner, Group, GroupCompare, SlotFunction, ExtendedSlotFunction,
-//                        AtomicInt, Mutex >::iterator< void, dummy > // : std::iterator< std::input_iterator_tag,
-//                //void >
-//                {
-//                    // used for unpacking tuple to function call
-//                    template<int...>
-//                struct seq
-//                {};
-//                template<int N, int... S>
-//                struct gens : gens<N - 1, N - 1, S...>
-//                {};
-//                template<int... S>
-//                struct gens<0, S...>
-//                {
-//                    typedef seq<S...> type;
-//                };
-//
-//                boost::shared_ptr< ::boost::signals3::detail::slot_wrapper > curr;
-//                std::tuple<Args...> params;
-//
-//                const boost::shared_ptr< ::boost::signals3::detail::slot_wrapper >& end;
-//
-//                template<int... S>
-//                void call_func(seq<S...>) const
-//                {
-//                    static_cast< ::boost::signals3::detail::callable< ResultType
-//                    (Args...), ::boost::signals3::detail::slot_base< AtomicInt > >& >(*curr)(std::get<S>(params)...);
-//                }
-//            public:
-//                iterator(boost::shared_ptr< ::boost::signals3::detail::slot_wrapper > n, const boost::shared_ptr< ::boost::signals3::detail::slot_wrapper >& end, std::tuple<Args...>&& args) :
-//                curr(std::move(n)), params(std::move(args)), end(end)
-//                {
-//                }
-//
-//                void
-//                operator*(void) const
-//                {
-//                    // TODO
-//                    call_func(typename gens<sizeof...(Args)>::type());
-//                }
-//
-//                iterator&
-//                operator++(void)
-//                {
-//                    if(curr != end)
-//                    {
-//                        do
-//                        {
-//                            curr = boost::atomic_load(&(curr->next));
-//                        }
-//                        while(curr != end && !curr->usable());
-//                    }
-//
-//                    return *this;
-//                }
-//
-//                bool is_end(void) const
-//                {
-//                    return curr == end;
-//                }
-//            };
         }
     }
 
