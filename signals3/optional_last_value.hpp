@@ -10,6 +10,8 @@
 #ifndef BOOST_SIGNALS3_OPTIONAL_LAST_VALUE_HPP
 #define BOOST_SIGNALS3_OPTIONAL_LAST_VALUE_HPP
 
+#include <boost/optional.hpp>
+
 namespace boost
 {
     namespace signals3
@@ -17,16 +19,16 @@ namespace boost
         template<typename ResultType>
         struct optional_last_value
         {
-            typedef ResultType result_type;
+            typedef boost::optional<ResultType> result_type;
 
             template<typename Iter>
-            ResultType operator()(Iter begin, Iter end)
+            result_type operator()(Iter iter)
             {
-                ResultType result;
-                while(begin != end)
+                result_type result;
+                while(iter.is_end())
                 {
-                    result = *begin;
-                    ++begin;
+                    result = *iter;
+                    ++iter;
                 }
                 return result;
             }
@@ -38,12 +40,12 @@ namespace boost
             typedef void result_type;
 
             template<typename Iter>
-            void operator()(Iter& begin, Iter& end) const
+            void operator()(Iter iter) const
             {
-                while(begin != end)
+                while(!iter.is_end())
                 {
-                    *begin;
-                    ++begin;
+                    *iter;
+                    ++iter;
                 }
             }
         };

@@ -8,6 +8,7 @@
  */
 
 #include "signals3/signal.hpp"
+#include <atomic>
 #include <iostream>
 #include <chrono>
 #include <boost/signals2.hpp>
@@ -15,10 +16,11 @@
 int val[2];
 
 template<size_t N>
-void test_handler(void)
-{
-    std::cout << "test" << N << std::endl;
-}
+    void
+    test_handler(void)
+    {
+        std::cout << "test" << N << std::endl;
+    }
 
 void
 basic_handler(void)
@@ -34,42 +36,58 @@ main(void)
 {
     // timing stuff
     std::chrono::high_resolution_clock clock;
+    auto start = clock.now();
+    auto end = clock.now();
+    const size_t num_slots = 11;
+    const size_t count = 1ULL << (28 - num_slots);
 
-    boost::signals3::signal<void(void)> test_sig;
-    test_sig.connect(&test_handler<0>);
-    test_sig.connect(&test_handler<1>);
-    test_sig.connect(&test_handler<2>);
-    test_sig();
+    std::function< void
+    (void) > test_func(&basic_handler);
 
-    boost::signals3::signal<void
-    (void)> mysig;
-
-    boost::signals2::signal<void
-    (void)> sig2;
-    mysig.connect(&basic_handler);
-    sig2.connect(&basic_handler);
-    const size_t count = 1ULL << 18;
-
-    std::cout << std::endl;
-
-    for (size_t iter = 0; iter < 10; ++iter)
+    boost::signals3::signal< void
+    (void) > test_sig;
+    boost::signals2::signal< void
+    (void) > sig2_test;
+    for (size_t i = 0; i < ((1<<num_slots)>>1); ++i)
     {
-        auto begin = clock.now();
-        for (size_t i = 0; i < count; ++i)
-        {
-            mysig();
-        }
-        auto end = clock.now();
-        std::cout << "signals3: " << std::chrono::duration_cast < std::chrono::nanoseconds
-                > (end - begin).count() / (double) count << std::endl;
+        test_sig.connect(&basic_handler);
+        sig2_test.connect(&basic_handler);
+    }
 
-        begin = clock.now();
+    for (size_t iter = 0; iter < 4; ++iter)
+    {
+//        start = clock.now();
+//        for (size_t i = 0; i < count; ++i)
+//        {
+//            test_func();
+//        }
+//        end = clock.now();
+//        std::cout << "std::function: "
+//                << std::chrono::duration_cast< std::chrono::nanoseconds >(end - start).count()
+//                        / (double) (count) << "ns" << std::endl;
+
+        start = clock.now();
         for (size_t i = 0; i < count; ++i)
         {
-            sig2();
+            test_sig();
         }
         end = clock.now();
-        std::cout << "signals2: " << std::chrono::duration_cast < std::chrono::nanoseconds
-                > (end - begin).count() / (double) count << std::endl;
+
+        std::cout << "signals3: "
+                << std::chrono::duration_cast< std::chrono::nanoseconds >(end - start).count()
+                        / (double) (count) << "ns" << std::endl;
+
+        start = clock.now();
+        for (size_t i = 0; i < count; ++i)
+        {
+            sig2_test();
+        }
+        end = clock.now();
+
+        std::cout << "signals2: "
+                << std::chrono::duration_cast< std::chrono::nanoseconds >(end - start).count()
+                        / (double) (count) << "ns" << std::endl;
+
+        std::cout << std::endl;
     }
 }

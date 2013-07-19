@@ -29,7 +29,7 @@ namespace boost
                         }
                         else
                         {
-                            const T orig = ++snapshot;
+                            T orig = ++snapshot;
                             if (atom.compare_exchange_weak(orig, snapshot))
                             {
                                 return true;
@@ -51,7 +51,7 @@ namespace boost
                         }
                         else
                         {
-                            const T orig = --snapshot;
+                            T orig = --snapshot;
                             if (atom.compare_exchange_weak(orig, snapshot))
                             {
                                 return true;
