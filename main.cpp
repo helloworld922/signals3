@@ -11,7 +11,7 @@
 //  http://www.boost.org/LICENSE_1_0.txt)
 
 //#define STD_FUNC_TEST
-#define SIG3_TEST
+//#define SIG3_TEST
 //#define SIG2_TEST
 
 #ifdef STD_FUNC_TEST
@@ -24,6 +24,7 @@
 #include <boost/signals2.hpp>
 #endif
 
+#include "signals3/signals3.hpp"
 #include <iostream>
 #include <chrono>
 //#include <boost/signals2.hpp>
@@ -31,11 +32,11 @@
 int val[2];
 
 template<size_t N>
-void
-test_handler(void)
-{
-    std::cout << "test" << N << std::endl;
-}
+    void
+    test_handler(void)
+    {
+        std::cout << "test" << N << std::endl;
+    }
 
 void
 basic_handler(void)
@@ -46,11 +47,7 @@ basic_handler(void)
     }
 }
 
-void
-extended_handler(const boost::signals3::connection& conn)
-{
-    std::cout << "extended handler" << std::endl;
-}
+#ifdef USE_TIMEINGS
 
 void
 timing_test(const size_t num_slots)
@@ -126,18 +123,34 @@ timing_test(const size_t num_slots)
     }
 }
 
+#endif
+
 int
 main(void)
 {
+    std::forward_list< boost::shared_ptr< void > > locks;
+
+    boost::signals3::track_list< boost::weak_ptr< void > > list;
+    boost::shared_ptr< int > a = boost::make_shared< int >(5);
+    list.push_front(a);
+    if (list.try_lock(locks))
+    {
+        std::cout << "got locks" << std::endl;
+        locks.clear();
+        a.reset();
+        if (list.try_lock(locks))
+        {
+            std::cout << "got locks" << std::endl;
+            locks.clear();
+        }
+    }
+
 //    for (size_t i = 0; i < 8; ++i)
 //    {
 //        std::cout << "i = " << i << std::endl;
 //        timing_test(i);
 //        std::cout << std::endl;
 //    }
-    boost::signals3::signal< void
-    (void) > mysig;
-    mysig.erase(&basic_handler);
 //    const boost::signals3::connection conn = mysig.push_back_extended(&extended_handler);
 //    mysig();
 //    conn.disconnect();

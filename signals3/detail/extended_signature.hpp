@@ -19,6 +19,8 @@ namespace boost
 {
     namespace signals3
     {
+        class connection;
+
         namespace detail
         {
             template<typename Signature>
