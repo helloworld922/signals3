@@ -19,9 +19,31 @@ namespace boost
     {
         namespace detail
         {
+//            template<typename T, typename AtomicType>
+//                inline bool
+//                compare_and_inc_not_equal(AtomicType& atom, const T& val)
+//                {
+//                    while (true)
+//                    {
+//                        T snapshot = atom.load();
+//                        if (val == snapshot)
+//                        {
+//                            return false;
+//                        }
+//                        else
+//                        {
+//                            T orig = ++snapshot;
+//                            if (atom.compare_exchange_weak(orig, snapshot))
+//                            {
+//                                return true;
+//                            }
+//                        }
+//                    }
+//                }
+
             template<typename T, typename AtomicType>
                 inline bool
-                compare_and_inc_not_equal(AtomicType& atom, const T& val)
+                compare_and_inc_not_equal(AtomicType& atom, const T val)
                 {
                     while (true)
                     {
@@ -41,9 +63,31 @@ namespace boost
                     }
                 }
 
+//            template<typename T, typename AtomicType>
+//                inline bool
+//                compare_and_dec_not_equal(AtomicType& atom, const T& val)
+//                {
+//                    while (true)
+//                    {
+//                        T snapshot = atom.load();
+//                        if (val == snapshot)
+//                        {
+//                            return false;
+//                        }
+//                        else
+//                        {
+//                            T orig = --snapshot;
+//                            if (atom.compare_exchange_weak(orig, snapshot))
+//                            {
+//                                return true;
+//                            }
+//                        }
+//                    }
+//                }
+
             template<typename T, typename AtomicType>
                 inline bool
-                compare_and_dec_not_equal(AtomicType& atom, const T& val)
+                compare_and_dec_not_equal(AtomicType& atom, const T val)
                 {
                     while (true)
                     {

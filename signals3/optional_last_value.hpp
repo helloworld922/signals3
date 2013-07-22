@@ -27,13 +27,13 @@ namespace boost
             typedef boost::optional<ResultType> result_type;
 
             template<typename Iter>
-            result_type operator()(Iter iter)
+            result_type operator()(Iter begin, Iter end)
             {
                 result_type result;
-                while(iter.is_end())
+                while(begin != end)
                 {
-                    result = *iter;
-                    ++iter;
+                    result = *begin;
+                    ++begin;
                 }
                 return result;
             }
@@ -45,12 +45,12 @@ namespace boost
             typedef void result_type;
 
             template<typename Iter>
-            void operator()(Iter iter) const
+            void operator()(Iter begin, Iter end) const
             {
-                while(!iter.is_end())
+                while(begin != end)
                 {
-                    *iter;
-                    ++iter;
+                    *begin;
+                    ++begin;
                 }
             }
         };

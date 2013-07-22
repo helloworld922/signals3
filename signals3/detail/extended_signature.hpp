@@ -15,8 +15,6 @@
 #ifndef BOOST_SIGNALS3_EXTENDED_SIGNATURE_HPP
 #define BOOST_SIGNALS3_EXTENDED_SIGNATURE_HPP
 
-#include <functional>
-
 namespace boost
 {
     namespace signals3

@@ -13,15 +13,6 @@
 #ifndef BOOST_SIGNALS3_SLOTS_HPP
 #define BOOST_SIGNALS3_SLOTS_HPP
 
-#include "atomic_extensions.hpp"
-#include "extended_signature.hpp"
-#include <numeric>
-#include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
-#include <boost/make_shared.hpp>
-#include <atomic>
-#include <boost/atomic.hpp>
-
 namespace boost
 {
     namespace signals3
@@ -29,47 +20,42 @@ namespace boost
         // =================================================
         // pre-declarations
         // =================================================
+        class signal_base;
         template<typename Signature, typename Combiner, typename Group, typename GroupCompare,
                 typename SlotFunction, typename ExtendedSlotFunction, typename AtomicInt,
-                typename SharedMutex>
-            class signal;
+                typename SharedMutex, typename UniqueLock>
+            class signal
+            {
+                class iterator;
+            };
 
         namespace detail
         {
             class slot_wrapper;
 
-            template<typename Signature, typename B = slot_wrapper>
-                struct callable;
-
-            template<typename Group = int, typename B = slot_wrapper>
+            template<typename Group = int>
                 class groupable;
 
-            template<typename AtomicInt = std::atomic< int >, typename B = slot_wrapper>
+            template<typename Signature, typename AtomicInt = std::atomic< int > >
                 class slot_base;
 
             template<typename Signature, typename FunctionType = std::function< Signature >,
-                    typename AtomicInt = std::atomic< int >, typename B = callable< Signature,
-                            slot_base< AtomicInt > > >
+                    typename AtomicInt = std::atomic< int > >
                 class slot;
 
             template<typename Signature, typename FunctionType = std::function< Signature >,
-                    typename Group = int, typename AtomicInt = std::atomic< int >,
-                    typename B = slot< Signature, FunctionType, AtomicInt,
-                            groupable< Group, callable< Signature, slot_base< AtomicInt > > > > >
+                    typename Group = int, typename AtomicInt = std::atomic< int > >
                 class grouped_slot;
 
             template<typename Signature,
                     typename ExtendedFunctionType = typename ::boost::signals3::detail::extended_signature<
-                            Signature >::type, typename AtomicInt = std::atomic< int >,
-                    typename B = callable< Signature, slot_base< AtomicInt > > >
+                            Signature >::type, typename AtomicInt = std::atomic< int > >
                 class extended_slot;
 
             template<typename Signature,
                     typename ExtendedFunctionType = typename ::boost::signals3::detail::extended_signature<
                             Signature >::type, typename Group = int,
-                    typename AtomicInt = std::atomic< int >, typename B = extended_slot< Signature,
-                            ExtendedFunctionType, AtomicInt,
-                            groupable< Group, callable< Signature, slot_base< AtomicInt > > > > >
+                    typename AtomicInt = std::atomic< int > >
                 class grouped_extended_slot;
         }
 
@@ -87,13 +73,22 @@ namespace boost
                 // unfortunately, there's no partial template specialization allowed in friend declarations.
                 template<typename Signature, typename Combiner, typename Group,
                         typename GroupCompare, typename SlotFunction, typename ExtendedSlotFunction,
-                        typename AtomicInt, typename SharedMutex>
+                        typename AtomicInt, typename Mutex, typename UniqueLock>
                     friend class signal;
 
+                template<typename Signature, typename Combiner, typename Group,
+                        typename GroupCompare, typename SlotFunction, typename ExtendedSlotFunction,
+                        typename AtomicInt, typename Mutex, typename UniqueLock>
+                    friend class signal< Signature, Combiner, Group, GroupCompare, SlotFunction,
+                            ExtendedSlotFunction, AtomicInt, Mutex, UniqueLock >::iterator;
+
+                friend class ::boost::shared_ptr< slot_wrapper >;
+                friend class ::boost::weak_ptr< slot_wrapper >;
+
             public:
-                // TODO: should be private, for some reason something isn't compiling nicely
-                boost::shared_ptr< slot_wrapper > next;
-                boost::weak_ptr< slot_wrapper > prev;
+                // TODO: probably should be private, but for some reason is causing compile to fail
+                ::boost::shared_ptr< slot_wrapper > next;
+                ::boost::weak_ptr< slot_wrapper > prev;
 
                 virtual
                 ~slot_wrapper(void)
@@ -138,36 +133,20 @@ namespace boost
                 usable(void) const = 0;
 
                 /**
-                 * @return: true if it is safe to cast this to a callable.
-                 */
-                virtual bool
-                valid(void) const = 0;
-
-                /**
                  * @return true if it is safe to cast this to a groupable.
                  */
                 virtual bool
                 grouped(void) const = 0;
+
+                /**
+                 * @return true if it is safe to cast this to extended_slot
+                 */
+                virtual bool
+                extended(void) const = 0;
             };
 
-            template<typename ResultType, typename ... Args, typename B>
-                struct callable< ResultType
-                (Args...), B > : public B
-                {
-                public:
-                    typedef ResultType result_type;
-
-                    virtual
-                    ~callable(void)
-                    {
-                    }
-
-                    virtual ResultType
-                    operator()(Args ... args) const = 0;
-                };
-
-            template<typename Group, typename B>
-                class groupable : public B
+            template<typename Group>
+                class groupable
                 {
                 public:
                     typedef Group group_type;
@@ -185,13 +164,16 @@ namespace boost
                     }
                 };
 
-            template<typename AtomicInt, typename B>
-                class slot_base : public B
+            template<typename ResultType, typename ... Args, typename AtomicInt>
+                class slot_base< ResultType
+                (Args...), AtomicInt > : public slot_wrapper
                 {
                     mutable AtomicInt _unusable;
 
-                    //const static int _disconnected = INT_MIN;
+                    static const int _disconnected = INT_MIN;
                 public:
+                    std::vector< boost::weak_ptr< void > > tracking_list;
+
                     virtual
                     ~slot_base(void)
                     {
@@ -203,20 +185,47 @@ namespace boost
                     bool
                     block(void) const final override
                     {
-                        static int _disconnected = INT_MIN;
-                        return compare_and_inc_not_equal(_unusable, _disconnected);
+                        while (true)
+                        {
+                            int snapshot = _unusable.load();
+                            if (_disconnected == snapshot)
+                            {
+                                return false;
+                            }
+                            else
+                            {
+                                int orig = ++snapshot;
+                                if (_unusable.compare_exchange_weak(orig, snapshot))
+                                {
+                                    return true;
+                                }
+                            }
+                        }
                     }
                     bool
                     unblock(void) const final override
                     {
-                        static int _disconnected = INT_MIN;
-                        return compare_and_dec_not_equal(_unusable, _disconnected);
+                        while (true)
+                        {
+                            int snapshot = _unusable.load();
+                            if (_disconnected == snapshot)
+                            {
+                                return false;
+                            }
+                            else
+                            {
+                                int orig = --snapshot;
+                                if (_unusable.compare_exchange_weak(orig, snapshot))
+                                {
+                                    return true;
+                                }
+                            }
+                        }
                     }
 
                     bool
                     mark_disconnected(void) final override
                     {
-                        static int _disconnected = INT_MIN;
                         return _unusable.exchange(_disconnected) != _disconnected;
                     }
 
@@ -238,25 +247,22 @@ namespace boost
                     }
 
                     virtual bool
-                    valid(void) const override
-                    {
-                        return false;
-                    }
-
-                    virtual bool
                     grouped(void) const override
                     {
                         return false;
                     }
+
+                    virtual ResultType
+                    operator()(Args ... args) const = 0;
                 };
 
             template<typename ResultType, typename ... Args, typename FunctionType,
-                    typename AtomicInt, typename B>
+                    typename AtomicInt>
                 class slot< ResultType
-                (Args...), FunctionType, AtomicInt, B > : public B
+                (Args...), FunctionType, AtomicInt > : public slot_base< ResultType
+                (Args...), AtomicInt >
                 {
-                    // TODO: implement slot class
-                    FunctionType callback;
+                    const FunctionType callback;
                 public:
                     slot(const FunctionType& f) :
                             callback(f)
@@ -273,30 +279,83 @@ namespace boost
                     {
                         return callback(args...);
                     }
+
+                    virtual bool
+                    extended(void) const override
+                    {
+                        return false;
+                    }
                 };
 
-            template<typename Signature, typename FunctionType, typename Group, typename, typename B>
-                class grouped_slot : public B
+            template<typename Signature, typename FunctionType, typename Group, typename AtomicInt>
+                class grouped_slot : public slot< Signature, FunctionType, AtomicInt >,
+                        public groupable< Group >
                 {
                 public:
-                    // TODO: implement grouped_slot
+                    grouped_slot(const FunctionType& f, const Group& gid) :
+                            slot< Signature, FunctionType, AtomicInt >(f), groupable< Group >(gid)
+                    {
+
+                    }
+
+                    virtual
+                    ~grouped_slot(void)
+                    {
+                    }
                 };
 
             template<typename ResultType, typename ... Args, typename ExtendedFunctionType,
-                    typename AtomicInt, typename B>
+                    typename AtomicInt>
                 class extended_slot< ResultType
-                (Args...), ExtendedFunctionType, AtomicInt, B > : public B
+                (Args...), ExtendedFunctionType, AtomicInt > : public slot_base< ResultType
+                (Args...), AtomicInt >
                 {
+                    const ExtendedFunctionType callback;
                 public:
-                    // TODO: implement extended_slot
+                    // TODO: probably should be private, but there are issues with friend and shared_ptr
+                    ::boost::signals3::connection conn;
+
+                    extended_slot(const ExtendedFunctionType& f) :
+                            callback(f)
+                    {
+                    }
+
+                    virtual
+                    ~extended_slot(void)
+                    {
+                    }
+
+                    virtual ResultType
+                    operator()(Args ... args) const override
+                    {
+                        return callback(conn, args...);
+                    }
+
+                    virtual bool
+                    extended(void) const
+                    {
+                        return true;
+                    }
+
+                    bool
+                    operator ==(const ExtendedFunctionType& f) const
+                    {
+                        return callback == f;
+                    }
                 };
 
             template<typename Signature, typename ExtendedFunctionType, typename Group,
-                    typename AtomicInt, typename B>
-                class grouped_extended_slot : public B
+                    typename AtomicInt>
+                class grouped_extended_slot : public extended_slot< Signature, ExtendedFunctionType,
+                        AtomicInt >, public groupable< Group >
                 {
                 public:
-                    // TODO: implement grouped_extended_slot
+                    grouped_extended_slot(const ExtendedFunctionType& f, const Group& gid) :
+                            extended_slot< Signature, ExtendedFunctionType, AtomicInt >(f), groupable<
+                                    Group >(gid)
+                    {
+
+                    }
                 };
         }
     }
