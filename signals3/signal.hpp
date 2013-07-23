@@ -152,14 +152,15 @@ namespace boost
                         if (prev != nullptr)
                         {
                             // more than 1 node
-                            static ::boost::signals3::detail::shared_ptr<
-                                    ::boost::signals3::detail::node_base > empty;
                             tail->prev.reset();
-                            ::boost::signals3::detail::atomic_store(&(prev->next), empty);
                             if (group_head == tail)
                             {
                                 group_head = prev;
                             }
+                            ::boost::signals3::detail::atomic_store(&(prev->next),
+                                    ::boost::signals3::detail::shared_ptr<
+                                            ::boost::signals3::detail::node_base >());
+
                             tail = boost::move(prev);
                         }
                         else
@@ -168,6 +169,32 @@ namespace boost
                             tail.reset();
                             group_head.reset();
                             ::boost::signals3::detail::atomic_store(&head, tail);
+                        }
+                    }
+                }
+
+                void
+                pop_front(void)
+                {
+                    unique_lock_type _lock(_mutex);
+                    if (head != nullptr)
+                    {
+                        // actually have a node to remove
+                        if (head == tail)
+                        {
+                            // only have one node
+                            tail.reset();
+                            group_head.reset();
+                            ::boost::signals3::detail::atomic_store(&head, tail);
+                        }
+                        else
+                        {
+                            // more than one node
+                            if (group_head == head)
+                            {
+                                group_head.reset();
+                            }
+                            ::boost::signals3::detail::atomic_store(&head, head->next);
                         }
                     }
                 }
