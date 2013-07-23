@@ -109,7 +109,7 @@ timing_test(const size_t num_slots)
         start = clock.now();
         for (size_t i = 0; i < count; ++i)
         {
-            test_sig.emit_unsafe();
+            test_sig.emit();
         }
         end = clock.now();
 

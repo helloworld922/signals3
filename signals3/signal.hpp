@@ -64,7 +64,20 @@ namespace boost
                 typedef boost::signals3::slot< ResultType
                 (Args...), FunctionType > slot_type;
                 typedef std::atomic< int > atomic_int_type;
-            public:
+            private:
+                // used for unpacking tuple to function call
+                template<int...>
+                struct seq
+                {};
+                template<int N, int... S>
+                struct gens : gens<N - 1, N - 1, S...>
+                {};
+                template<int... S>
+                struct gens<0, S...>
+                {
+                    typedef seq<S...> type;
+                };
+
                 struct t_node_base : public ::boost::signals3::detail::node_base
                 {
                     ::boost::signals3::detail::shared_ptr< t_node_base > next;
@@ -76,7 +89,7 @@ namespace boost
                     virtual bool
                     try_lock(
                             ::boost::signals3::detail::forward_list<
-                                    ::boost::signals3::detail::shared_ptr< void > >& list) const = 0;
+                            ::boost::signals3::detail::shared_ptr< void > >& list) const = 0;
 
                     bool
                     usable(void) const
@@ -92,18 +105,6 @@ namespace boost
 
                 struct node : public t_node_base
                 {
-                    // used for unpacking tuple to function call
-                    template<int...>
-                    struct seq
-                    {};
-                    template<int N, int... S>
-                    struct gens : gens<N - 1, N - 1, S...>
-                    {};
-                    template<int... S>
-                    struct gens<0, S...>
-                    {
-                        typedef seq<S...> type;
-                    };
 
                     slot_type callback;
                     node(const slot_type& callback) :
@@ -125,7 +126,7 @@ namespace boost
                     }
 
                     template<int... S>
-                    ResultType call_func(seq<S...>, std::tuple<Args...>& params) const
+                    inline ResultType call_func(seq<S...>, std::tuple<Args...>& params) const
                     {
                         return callback.slot_function()(std::forward<Args>(std::get<S>(params))...);
                     }
@@ -438,7 +439,6 @@ namespace boost
                 typename Combiner::result_type
                 emit(Args ... args)
                 {
-                    std::cout << "emit start" << std::endl;
                     ::boost::signals3::detail::forward_list
                     < ::boost::signals3::detail::shared_ptr< void > > tracking_list;
                     ::boost::signals3::detail::tuple< Args
@@ -515,7 +515,6 @@ namespace boost
                                 ::boost::signals3::detail::shared_ptr< void > >& tracking) :
                         curr(boost::move(start_node)), params(params), tracking(tracking)
                 {
-                    std::cout << "iterator constructor" << std::endl;
                 }
 
                 ResultType
@@ -595,52 +594,52 @@ namespace boost
                     // TODO
                     return (*curr)(params);
                     //return call_func(typename gens< sizeof...(Args)>::type());
-            }
+                }
 
-            unsafe_iterator&
-            operator++(void)
-            {
-                // release any locks we might have
-                            tracking.clear();
-                            if (curr != nullptr)
+                unsafe_iterator&
+                operator++(void)
+                {
+                    // release any locks we might have
+                    tracking.clear();
+                    if (curr != nullptr)
+                    {
+                        while (true)
+                        {
+                            curr = curr->next;
+                            if (curr == nullptr)
                             {
-                                while (true)
+                                return *this;
+                            }
+                            if (curr->usable())
+                            {
+                                if (curr->try_lock(tracking))
                                 {
-                                    curr = curr->next;
-                                    if (curr == nullptr)
-                                    {
-                                        return *this;
-                                    }
-                                    if (curr->usable())
-                                    {
-                                        if (curr->try_lock(tracking))
-                                        {
-                                            return *this;
-                                        }
-                                        else
-                                        {
-                                            // TODO: automatic disconnect
-                                            tracking.clear();
-                                        }
-                                    }
+                                    return *this;
+                                }
+                                else
+                                {
+                                    // TODO: automatic disconnect
+                                    tracking.clear();
                                 }
                             }
-                            return *this;
                         }
-
-                        bool
-                        operator ==(const unsafe_iterator& rhs) const
-                        {
-                            return curr == rhs.curr;
-                        }
-
-                        bool
-                        operator !=(const unsafe_iterator& rhs) const
-                        {
-                            return curr != rhs.curr;
-                        }
-                    };
+                    }
+                    return *this;
                 }
-            }
+
+                bool
+                operator ==(const unsafe_iterator& rhs) const
+                {
+                    return curr == rhs.curr;
+                }
+
+                bool
+                operator !=(const unsafe_iterator& rhs) const
+                {
+                    return curr != rhs.curr;
+                }
+            };
+    }
+}
 
 #endif /* SIGNAL_HPP_ */
