@@ -24,8 +24,52 @@ namespace boost
             class slot_base< ResultType
             (Args...) >
             {
+                typedef track_list< boost::weak_ptr< void > > _track_list;
+                _track_list _tracking;
+
+                static const int _disconnected = INT_MIN;
             public:
                 typedef ResultType result_type;
+                typedef boost::weak_ptr< void > weak_ptr_type;
+
+                slot_base&
+                track(const weak_ptr_type& obj)
+                {
+                    _tracking.push_front(obj);
+                    return *this;
+                }
+
+                slot_base&
+                track(weak_ptr_type&& obj)
+                {
+                    _tracking.push_front(std::move(obj));
+                    return *this;
+                }
+
+                track_list< boost::weak_ptr< void > >&
+                tracking(void)
+                {
+                    return _tracking;
+                }
+                const track_list< boost::weak_ptr< void > >&
+                tracking(void) const
+                {
+                    return _tracking;
+                }
+
+                bool
+                expired(void) const
+                {
+                    return _tracking.expired();
+                }
+
+                template<typename ForwardList = std::forward_list<
+                        typename _track_list::shared_ptr_type > >
+                    bool
+                    try_lock(ForwardList& list) const
+                    {
+                        return _tracking.try_lock(list);
+                    }
 
                 virtual
                 ~slot_base(void)
@@ -33,7 +77,8 @@ namespace boost
                 }
             };
 
-        template<typename Signature, typename SlotFunction>
+        template<typename Signature, typename SlotFunction = ::boost::signals3::detail::function<
+                Signature > >
             class slot;
 
         template<typename ResultType, typename ... Args, typename SlotFunction>
@@ -45,15 +90,17 @@ namespace boost
             public:
                 typedef SlotFunction function_type;
 
-                slot(const SlotFunction& callback) :
-                        callback(callback)
-                {
-                }
+                template<typename Callback>
+                    slot(const Callback& callback) :
+                            callback(callback)
+                    {
+                    }
 
-                slot(SlotFunction&& callback) :
-                        callback(std::move(callback))
-                {
-                }
+                template<typename Callback>
+                    slot(Callback&& callback) :
+                            callback(boost::move(callback))
+                    {
+                    }
 
                 virtual
                 ~slot(void)

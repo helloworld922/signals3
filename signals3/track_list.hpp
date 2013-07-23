@@ -17,12 +17,12 @@ namespace boost
         /**
          * A thread-safe singly linked list for tracking object lifetimes.
          */
-        template<typename T = boost::weak_ptr< void > >
+        template<typename T = ::boost::signals3::detail::weak_ptr< void > >
             class track_list
             {
                 struct node
                 {
-                    boost::shared_ptr< node > next;
+                    ::boost::signals3::detail::shared_ptr< node > next;
                     T data;
 
                     node(const T& d) :
@@ -36,26 +36,27 @@ namespace boost
                     }
                 };
 
-                boost::shared_ptr< node > head;
+                ::boost::signals3::detail::shared_ptr< node > head;
 
                 void
-                push_front_impl(boost::shared_ptr< node >&& n)
+                push_front_impl(::boost::signals3::detail::shared_ptr< node >&& n)
                 {
-                    static boost::shared_ptr< node > empty;
-                    if (!boost::atomic_compare_exchange(&head, &empty, n))
+                    static ::boost::signals3::detail::shared_ptr< node > empty;
+                    if (!::boost::signals3::detail::atomic_compare_exchange(&head, &empty, n))
                     {
                         // already has a head
                         do
                         {
-                            n->next = boost::atomic_load(&(head->next));
+                            n->next = ::boost::signals3::detail::atomic_load(&(head->next));
                         }
-                        while (!boost::atomic_compare_exchange(&(head->next), &(n->next), n));
+                        while (!::boost::signals3::detail::atomic_compare_exchange(&(head->next),
+                                &(n->next), n));
                     }
                 }
 
             public:
                 typedef T weak_ptr_type;
-                typedef boost::shared_ptr< void > shared_ptr_type;
+                typedef ::boost::signals3::detail::shared_ptr< void > shared_ptr_type;
 
                 track_list(void)
                 {
@@ -63,7 +64,8 @@ namespace boost
 
                 track_list(const track_list& list)
                 {
-                    boost::shared_ptr< node > iter = boost::atomic_load(&(list.head));
+                    ::boost::signals3::detail::shared_ptr< node > iter =
+                            ::boost::signals3::detail::atomic_load(&(list.head));
                     while (iter != nullptr)
                     {
                         push_front(iter->data);
@@ -79,32 +81,52 @@ namespace boost
                 track_list&
                 push_front(const T& ptr)
                 {
-                    boost::shared_ptr< node > n = boost::make_shared< node >(ptr);
-                    push_front_impl(std::move(n));
+                    ::boost::signals3::detail::shared_ptr< node > n =
+                            ::boost::signals3::detail::make_shared < node > (ptr);
+                    push_front_impl(boost::move(n));
                     return *this;
                 }
 
                 track_list&
                 push_front(T&& ptr)
                 {
-                    boost::shared_ptr< node > n = boost::make_shared< node >(std::move(ptr));
-                    push_front_impl(std::move(n));
+                    ::boost::signals3::detail::shared_ptr< node > n =
+                            ::boost::signals3::detail::make_shared < node > (boost::move(ptr));
+                    push_front_impl(boost::move(n));
                     return *this;
                 }
 
-                template<typename ForwardList = std::forward_list< shared_ptr_type > >
+                bool
+                expired(void) const
+                {
+                    ::boost::signals3::detail::shared_ptr< node > iter =
+                            ::boost::signals3::detail::atomic_load(&head);
+                    while (iter != nullptr)
+                    {
+                        if (iter->data.expired())
+                        {
+                            return false;
+                        }
+                        iter = iter->next;
+                    }
+                    return true;
+                }
+
+                template<typename ForwardList = ::boost::signals3::detail::forward_list<
+                        shared_ptr_type > >
                     bool
                     try_lock(ForwardList& list) const
                     {
-                        boost::shared_ptr< node > iter = boost::atomic_load(&head);
+                        ::boost::signals3::detail::shared_ptr< node > iter =
+                                ::boost::signals3::detail::atomic_load(&head);
                         while (iter != nullptr)
                         {
-                            boost::shared_ptr< void > item = iter->data.lock();
+                            ::boost::signals3::detail::shared_ptr< void > item = iter->data.lock();
                             if (item == nullptr)
                             {
                                 return false;
                             }
-                            list.push_front(std::move(item));
+                            list.push_front(boost::move(item));
                             iter = iter->next;
                         }
                         return true;

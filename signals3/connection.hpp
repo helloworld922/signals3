@@ -17,7 +17,40 @@ namespace boost
 {
     namespace signals3
     {
+        namespace detail
+        {
+            class signal_base;
+            class node_base;
+        }
 
+        class connection
+        {
+            // maintains no ownership over _sig
+            ::boost::signals3::detail::signal_base* _sig;
+            ::boost::signals3::detail::weak_ptr< ::boost::signals3::detail::node_base > _node;
+        public:
+            connection(void) :
+                    _sig(nullptr)
+            {
+            }
+
+            connection(::boost::signals3::detail::signal_base* _sig,
+                    const ::boost::signals3::detail::weak_ptr< ::boost::signals3::detail::node_base >& _node) :
+                    _sig(_sig), _node(_node)
+            {
+            }
+
+            connection(::boost::signals3::detail::signal_base* _sig,
+                    ::boost::signals3::detail::weak_ptr< ::boost::signals3::detail::node_base >&& _node) :
+                    _sig(_sig), _node(boost::move(_node))
+            {
+            }
+
+            virtual
+            ~connection(void)
+            {
+            }
+        };
     }
 }
 

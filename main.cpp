@@ -125,25 +125,20 @@ timing_test(const size_t num_slots)
 
 #endif
 
+void test_func(const boost::signals3::slot<void(void)>& s)
+{
+
+}
+
 int
 main(void)
 {
-    std::forward_list< boost::shared_ptr< void > > locks;
-
-    boost::signals3::track_list< boost::weak_ptr< void > > list;
-    boost::shared_ptr< int > a = boost::make_shared< int >(5);
-    list.push_front(a);
-    if (list.try_lock(locks))
-    {
-        std::cout << "got locks" << std::endl;
-        locks.clear();
-        a.reset();
-        if (list.try_lock(locks))
-        {
-            std::cout << "got locks" << std::endl;
-            locks.clear();
-        }
-    }
+    boost::signals3::signal<void(void)> mysig;
+    mysig.push_back(&basic_handler);
+    mysig.push_back(&basic_handler);
+    mysig.pop_back();
+    mysig.pop_back();
+    mysig.pop_back();
 
 //    for (size_t i = 0; i < 8; ++i)
 //    {
