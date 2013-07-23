@@ -10,9 +10,11 @@
 //  accompanying file LICENSE_1_0.txt or copy at
 //  http://www.boost.org/LICENSE_1_0.txt)
 
+#define USE_TIMINGS
+
 //#define STD_FUNC_TEST
-//#define SIG3_TEST
-//#define SIG2_TEST
+#define SIG3_TEST
+#define SIG2_TEST
 
 #ifdef STD_FUNC_TEST
 #include <functional>
@@ -24,7 +26,7 @@
 #include <boost/signals2.hpp>
 #endif
 
-#include "signals3/signals3.hpp"
+//#include "signals3/signals3.hpp"
 #include <iostream>
 #include <chrono>
 //#include <boost/signals2.hpp>
@@ -47,7 +49,7 @@ basic_handler(void)
     }
 }
 
-#ifdef USE_TIMEINGS
+#ifdef USE_TIMINGS
 
 void
 timing_test(const size_t num_slots)
@@ -68,12 +70,13 @@ timing_test(const size_t num_slots)
     (void) > test_sig;
     for (size_t i = 0; i < call_times; ++i)
     {
-        test_sig.push_back(&basic_handler);
+        test_sig.push_back_unsafe(&basic_handler);
     }
 #endif
 #ifdef SIG2_TEST
-    boost::signals2::signal< void
-    (void) > sig2_test;
+    typename boost::signals2::signal_type<void(void), boost::signals2::keywords::mutex_type<boost::mutex> >::type sig2_test;
+//    boost::signals2::signal< void
+//    (void) > sig2_test;
     for (size_t i = 0; i < call_times; ++i)
     {
         sig2_test.connect(&basic_handler);
@@ -100,13 +103,13 @@ timing_test(const size_t num_slots)
         start = clock.now();
         for (size_t i = 0; i < count; ++i)
         {
-            test_sig();
+            test_sig.emit();
         }
         end = clock.now();
 
         std::cout << "signals3: "
-        << std::chrono::duration_cast< std::chrono::nanoseconds >(end - start).count()
-        / (double) (count) << "ns" << std::endl;
+                << std::chrono::duration_cast< std::chrono::nanoseconds >(end - start).count()
+                        / (double) (count) << "ns" << std::endl;
 #endif
 #ifdef SIG2_TEST
         start = clock.now();
@@ -125,26 +128,20 @@ timing_test(const size_t num_slots)
 
 #endif
 
-void test_func(const boost::signals3::slot<void(void)>& s)
-{
-
-}
-
 int
 main(void)
 {
-    boost::signals3::signal<void(void)> mysig;
-    mysig.push_back(&test_handler<0>);
-    mysig.push_front(&test_handler<1>);
-    mysig.pop_back();
-    mysig.pop_front();
+//    boost::signals3::signal<void(void)> mysig;
+//    mysig.push_back(test_handler<0>);
+//    mysig.push_back(test_handler<1>);
+    //timing_test(1);
 
-//    for (size_t i = 0; i < 8; ++i)
-//    {
-//        std::cout << "i = " << i << std::endl;
-//        timing_test(i);
-//        std::cout << std::endl;
-//    }
+    for (size_t i = 0; i < 8; ++i)
+    {
+        std::cout << "i = " << i << std::endl;
+        timing_test(i);
+        std::cout << std::endl;
+    }
 //    const boost::signals3::connection conn = mysig.push_back_extended(&extended_handler);
 //    mysig();
 //    conn.disconnect();

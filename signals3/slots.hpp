@@ -24,7 +24,7 @@ namespace boost
             class slot_base< ResultType
             (Args...) >
             {
-                typedef track_list< boost::weak_ptr< void > > _track_list;
+                typedef std::vector< boost::weak_ptr< void > > _track_list;
                 _track_list _tracking;
 
                 static const int _disconnected = INT_MIN;
@@ -35,14 +35,14 @@ namespace boost
                 slot_base&
                 track(const weak_ptr_type& obj)
                 {
-                    _tracking.push_front(obj);
+                    _tracking.push_back(obj);
                     return *this;
                 }
 
                 slot_base&
                 track(weak_ptr_type&& obj)
                 {
-                    _tracking.push_front(std::move(obj));
+                    _tracking.push_back(std::move(obj));
                     return *this;
                 }
 
@@ -60,15 +60,34 @@ namespace boost
                 bool
                 expired(void) const
                 {
-                    return _tracking.expired();
+                    for (auto iter = _tracking.begin(); iter != _tracking.end(); ++iter)
+                    {
+                        if (iter->lock() == nullptr)
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
                 }
 
+                /**
+                 * Thread safe call to try_lock
+                 */
                 template<typename ForwardList = std::forward_list<
-                        typename _track_list::shared_ptr_type > >
+                        typename ::boost::signals3::detail::shared_ptr< void > > >
                     bool
                     try_lock(ForwardList& list) const
                     {
-                        return _tracking.try_lock(list);
+                        for (auto iter = _tracking.begin(); iter != _tracking.end(); ++iter)
+                        {
+                            ::boost::signals3::detail::shared_ptr< void > item = iter->lock();
+                            if (item == nullptr)
+                            {
+                                return false;
+                            }
+                            list.push_front(boost::move(item));
+                        }
+                        return true;
                     }
 
                 virtual
@@ -117,6 +136,12 @@ namespace boost
                 slot_function(void) const
                 {
                     return callback;
+                }
+
+                ResultType
+                operator()(Args ... args)
+                {
+                    return callback(args...);
                 }
             };
     }

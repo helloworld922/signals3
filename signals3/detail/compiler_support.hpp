@@ -24,6 +24,7 @@
 #include <boost/thread/locks.hpp>
 #include <iterator>
 #include <functional>
+#include <vector>
 #include <forward_list>
 
 #include <tuple>
@@ -45,6 +46,9 @@ namespace boost
             // thread mutex and unique locking
             using ::boost::mutex;
             using ::boost::unique_lock;
+
+            // tuple
+            using ::std::tuple;
 
             // atomic int
             using ::std::atomic;

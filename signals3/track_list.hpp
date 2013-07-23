@@ -41,7 +41,7 @@ namespace boost
                 void
                 push_front_impl(::boost::signals3::detail::shared_ptr< node >&& n)
                 {
-                    ::boost::signals3::detail::shared_ptr< node > empty;
+                    ::boost::signals3::detail::shared_ptr < node > empty;
                     if (!::boost::signals3::detail::atomic_compare_exchange(&head, &empty, n))
                     {
                         // already has a head
@@ -97,6 +97,22 @@ namespace boost
                 }
 
                 bool
+                expired_unsafe(void) const
+                {
+                    ::boost::signals3::detail::shared_ptr< node > iter = head;
+                    while (iter != nullptr)
+                    {
+                        if (iter->data.expired())
+                        {
+                            return false;
+                        }
+                        iter = iter->next;
+                        // ::boost::signals3::detail::atomic_load(&(iter->next));
+                    }
+                    return true;
+                }
+
+                bool
                 expired(void) const
                 {
                     ::boost::signals3::detail::shared_ptr< node > iter =
@@ -107,10 +123,29 @@ namespace boost
                         {
                             return false;
                         }
-                        iter = iter->next;
+                        iter = ::boost::signals3::detail::atomic_load(&(iter->next));
                     }
                     return true;
                 }
+
+                template<typename ForwardList = ::boost::signals3::detail::forward_list<
+                        shared_ptr_type > >
+                    bool
+                    try_lock_unsafe(ForwardList& list) const
+                    {
+                        ::boost::signals3::detail::shared_ptr< node > iter = head;
+                        while (iter != nullptr)
+                        {
+                            ::boost::signals3::detail::shared_ptr< void > item = iter->data.lock();
+                            if (item == nullptr)
+                            {
+                                return false;
+                            }
+                            list.push_front(boost::move(item));
+                            iter = iter->next;
+                        }
+                        return true;
+                    }
 
                 template<typename ForwardList = ::boost::signals3::detail::forward_list<
                         shared_ptr_type > >
@@ -127,7 +162,7 @@ namespace boost
                                 return false;
                             }
                             list.push_front(boost::move(item));
-                            iter = iter->next;
+                            iter = ::boost::signals3::detail::atomic_load(&(iter->next));
                         }
                         return true;
                     }
