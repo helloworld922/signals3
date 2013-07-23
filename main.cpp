@@ -14,7 +14,7 @@
 
 //#define STD_FUNC_TEST
 #define SIG3_TEST
-#define SIG2_TEST
+//#define SIG2_TEST
 
 #ifdef STD_FUNC_TEST
 #include <functional>
@@ -103,7 +103,7 @@ timing_test(const size_t num_slots)
         start = clock.now();
         for (size_t i = 0; i < count; ++i)
         {
-            test_sig.emit();
+            test_sig.emit_unsafe();
         }
         end = clock.now();
 

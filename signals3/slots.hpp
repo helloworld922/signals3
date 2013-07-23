@@ -78,9 +78,9 @@ namespace boost
                     bool
                     try_lock(ForwardList& list) const
                     {
-                        for (auto iter = _tracking.begin(); iter != _tracking.end(); ++iter)
+                        for (auto i = _tracking.begin(); i != _tracking.end(); ++i)
                         {
-                            ::boost::signals3::detail::shared_ptr< void > item = iter->lock();
+                            ::boost::signals3::detail::shared_ptr< void > item = i->lock();
                             if (item == nullptr)
                             {
                                 return false;

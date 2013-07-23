@@ -435,7 +435,7 @@ namespace boost
                         else if (!begin_ptr->try_lock(tracking_list))
                         {
                             // TODO: automatic disconnect
-                            //tracking_list.clear();
+                            tracking_list.clear();
                             begin_ptr = ::boost::signals3::detail::atomic_load(&(begin_ptr->next));
                         }
                         else
@@ -558,7 +558,7 @@ namespace boost
                 operator++(void)
                 {
                     // release any locks we might have
-                    tracking.clear();
+                    //tracking.clear();
                     if (curr != nullptr)
                     {
                         while (true)
@@ -568,7 +568,7 @@ namespace boost
                             {
                                 return *this;
                             }
-                            if (curr->usable())
+                            else if (curr->usable())
                             {
                                 if (curr->try_lock(tracking))
                                 {
