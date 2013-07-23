@@ -87,34 +87,54 @@ namespace boost
                     }
 
                     virtual ResultType
-                    operator()(Args ... args) const = 0;
+                    operator()(boost::signals3::detail::tuple< Args... > params) const = 0;
                 };
 
                 struct node : public t_node_base
                 {
+                    // used for unpacking tuple to function call
+                    template<int...>
+                    struct seq
+                    {};
+                    template<int N, int... S>
+                    struct gens : gens<N - 1, N - 1, S...>
+                    {};
+                    template<int... S>
+                    struct gens<0, S...>
+                    {
+                        typedef seq<S...> type;
+                    };
+
                     slot_type callback;
                     node(const slot_type& callback) :
-                            callback(callback)
+                    callback(callback)
                     {
                     }
 
                     node(slot_type&& callback) :
-                            callback(boost::move(callback))
+                    callback(boost::move(callback))
                     {
                     }
 
                     virtual bool
                     try_lock(
                             ::boost::signals3::detail::forward_list<
-                                    ::boost::signals3::detail::shared_ptr< void > >& list) const override
+                            ::boost::signals3::detail::shared_ptr< void > >& list) const override
                     {
                         return callback.try_lock(list);
                     }
 
-                    virtual ResultType
-                    operator()(Args&&... args) const override
+                    template<int... S>
+                    ResultType call_func(seq<S...>, std::tuple<Args...>& params) const
                     {
-                        return callback.slot_function()(std::forward(args)...);
+                        return callback.slot_function()(std::forward<Args>(std::get<S>(params))...);
+                    }
+
+                    virtual ResultType
+                    operator()(::boost::signals3::detail::tuple<Args...> params) const override
+                    {
+                        return call_func(typename gens<sizeof...(Args)>::type(), params);
+                        //return callback.slot_function()(std::forward<Args>(args)...);
                     }
                 };
 
@@ -239,7 +259,7 @@ namespace boost
                 push_back(slot_type&& callback)
                 {
                     ::boost::signals3::detail::shared_ptr< node > n =
-                            ::boost::signals3::detail::make_shared < node > (callback);
+                    ::boost::signals3::detail::make_shared < node > (callback);
                     ::boost::signals3::connection conn(this, n);
                     push_back_impl(boost::move(n));
                     return conn;
@@ -258,7 +278,7 @@ namespace boost
                 push_front(slot_type&& callback)
                 {
                     ::boost::signals3::detail::shared_ptr< node > n =
-                            ::boost::signals3::detail::make_shared < node > (callback);
+                    ::boost::signals3::detail::make_shared < node > (callback);
                     ::boost::signals3::connection conn(this, n);
                     push_front_impl(boost::move(n));
                     return conn;
@@ -272,7 +292,7 @@ namespace boost
                     {
                         // actually have a node to remove
                         ::boost::signals3::detail::shared_ptr< t_node_base > prev =
-                                tail->prev.lock();
+                        tail->prev.lock();
                         if (prev != nullptr)
                         {
                             // more than 1 node
@@ -335,7 +355,7 @@ namespace boost
                 push_back_unsafe(slot_type&& callback)
                 {
                     ::boost::signals3::detail::shared_ptr< node > n =
-                            ::boost::signals3::detail::make_shared < node > (callback);
+                    ::boost::signals3::detail::make_shared < node > (callback);
                     ::boost::signals3::connection conn(this, n);
                     push_back_impl_unsafe(boost::move(n));
                     return conn;
@@ -354,7 +374,7 @@ namespace boost
                 push_front_unsafe(slot_type&& callback)
                 {
                     ::boost::signals3::detail::shared_ptr< node > n =
-                            ::boost::signals3::detail::make_shared < node > (callback);
+                    ::boost::signals3::detail::make_shared < node > (callback);
                     ::boost::signals3::connection conn(this, n);
                     push_front_impl_unsafe(boost::move(n));
                     return conn;
@@ -367,7 +387,7 @@ namespace boost
                     {
                         // actually have a node to remove
                         ::boost::signals3::detail::shared_ptr< t_node_base > prev =
-                                tail->prev.lock();
+                        tail->prev.lock();
                         if (prev != nullptr)
                         {
                             // more than 1 node
@@ -415,47 +435,16 @@ namespace boost
                     }
                 }
 
-                /**
-                 * Thread safe emit
-                 */
-                typename Combiner::result_type
-                operator()(Args ... args)
-                {
-                    ::boost::signals3::detail::forward_list
-                            < ::boost::signals3::detail::shared_ptr< void > > tracking_list;
-                    ::boost::signals3::detail::tuple< Args... > params(args...);
-                    ::boost::signals3::detail::shared_ptr< t_node_base > begin_ptr =
-                            ::boost::signals3::detail::atomic_load(&head);
-                    while (begin_ptr != nullptr)
-                    {
-                        if (!begin_ptr->usable())
-                        {
-                            begin_ptr = ::boost::signals3::detail::atomic_load(&(begin_ptr->next));
-                        }
-                        else if (!begin_ptr->try_lock(tracking_list))
-                        {
-                            // TODO: automatic disconnect
-                            tracking_list.clear();
-                            begin_ptr = ::boost::signals3::detail::atomic_load(&(begin_ptr->next));
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                    iterator begin(boost::move(begin_ptr), params, tracking_list);
-                    iterator end(nullptr, params, tracking_list);
-                    return combiner(boost::move(begin), boost::move(end));
-                }
-
                 typename Combiner::result_type
                 emit(Args ... args)
                 {
+                    std::cout << "emit start" << std::endl;
                     ::boost::signals3::detail::forward_list
-                            < ::boost::signals3::detail::shared_ptr< void > > tracking_list;
-                    ::boost::signals3::detail::tuple< Args... > params(args...);
+                    < ::boost::signals3::detail::shared_ptr< void > > tracking_list;
+                    ::boost::signals3::detail::tuple< Args
+                    ... > params(std::forward<Args>(args)...);
                     ::boost::signals3::detail::shared_ptr< t_node_base > begin_ptr =
-                            ::boost::signals3::detail::atomic_load(&head);
+                    ::boost::signals3::detail::atomic_load(&head);
                     while (begin_ptr != nullptr)
                     {
                         if (!begin_ptr->usable())
@@ -482,10 +471,10 @@ namespace boost
                 emit_unsafe(Args ... args)
                 {
                     ::boost::signals3::detail::forward_list
-                            < ::boost::signals3::detail::shared_ptr< void > > tracking_list;
-                    ::boost::signals3::detail::tuple< Args... > params(args...);
+                    < ::boost::signals3::detail::shared_ptr< void > > tracking_list;
+                    ::boost::signals3::detail::tuple< Args... > params(std::forward<Args>(args)...);
                     ::boost::signals3::detail::shared_ptr< t_node_base > begin_ptr =
-                            ::boost::signals3::detail::atomic_load(&head);
+                    ::boost::signals3::detail::atomic_load(&head);
                     while (begin_ptr != nullptr)
                     {
                         if (!begin_ptr->usable())
@@ -514,44 +503,26 @@ namespace boost
             class signal< ResultType
             (Args...), Combiner, Group, GroupCompare, FunctionType >::iterator
             {
-                // used for unpacking tuple to function call
-                template<int...>
-                struct seq
-                {};
-                template<int N, int... S>
-                struct gens : gens<N - 1, N - 1, S...>
-                {};
-                template<int... S>
-                struct gens<0, S...>
-                {
-                    typedef seq<S...> type;
-                };
-
                 ::boost::signals3::detail::shared_ptr< t_node_base > curr;
                 ::boost::signals3::detail::tuple< Args... >& params;
                 ::boost::signals3::detail::forward_list<
-                ::boost::signals3::detail::shared_ptr< void > >& tracking;
+                        ::boost::signals3::detail::shared_ptr< void > >& tracking;
 
-                template<int... S>
-                ResultType call_func(seq<S...>) const
-                {
-                    return (*curr)(std::forward(std::get<S>(params))...);
-                }
             public:
                 iterator(::boost::signals3::detail::shared_ptr< t_node_base >&& start_node,
                         ::boost::signals3::detail::tuple< Args... >& params,
                         ::boost::signals3::detail::forward_list<
-                        ::boost::signals3::detail::shared_ptr< void > >& tracking) :
-                curr(boost::move(start_node)), params(params), tracking(tracking)
+                                ::boost::signals3::detail::shared_ptr< void > >& tracking) :
+                        curr(boost::move(start_node)), params(params), tracking(tracking)
                 {
-
+                    std::cout << "iterator constructor" << std::endl;
                 }
 
                 ResultType
                 operator*(void) const
                 {
                     // TODO
-                    return call_func(typename gens<sizeof...(Args)>::type());
+                    return (*curr)(params);
                 }
 
                 iterator&
@@ -603,90 +574,73 @@ namespace boost
             class signal< ResultType
             (Args...), Combiner, Group, GroupCompare, FunctionType >::unsafe_iterator
             {
-                // used for unpacking tuple to function call
-                template<int...>
-            struct seq
-            {};
-            template<int N, int... S>
-            struct gens : gens<N - 1, N - 1, S...>
-            {};
-            template<int... S>
-            struct gens<0, S...>
-            {
-                typedef seq<S...> type;
-            };
+                ::boost::signals3::detail::shared_ptr< t_node_base > curr;
+                ::boost::signals3::detail::tuple< Args... >& params;
+                ::boost::signals3::detail::forward_list<
+                        ::boost::signals3::detail::shared_ptr< void > >& tracking;
 
-            ::boost::signals3::detail::shared_ptr< t_node_base > curr;
-            ::boost::signals3::detail::tuple< Args... >& params;
-            ::boost::signals3::detail::forward_list<
-            ::boost::signals3::detail::shared_ptr< void > >& tracking;
+            public:
+                unsafe_iterator(::boost::signals3::detail::shared_ptr< t_node_base >&& start_node,
+                        ::boost::signals3::detail::tuple< Args... >& params,
+                        ::boost::signals3::detail::forward_list<
+                                ::boost::signals3::detail::shared_ptr< void > >& tracking) :
+                        curr(boost::move(start_node)), params(params), tracking(tracking)
+                {
 
-            template<int... S>
-            ResultType call_func(seq<S...>) const
-            {
-                return (*curr)(std::forward(std::get<S>(params))...);
-            }
-        public:
-            unsafe_iterator(::boost::signals3::detail::shared_ptr< t_node_base >&& start_node,
-                    ::boost::signals3::detail::tuple< Args... >& params,
-                    ::boost::signals3::detail::forward_list<
-                    ::boost::signals3::detail::shared_ptr< void > >& tracking) :
-            curr(boost::move(start_node)), params(params), tracking(tracking)
-            {
+                }
 
-            }
-
-            ResultType
-            operator*(void) const
-            {
-                // TODO
-                return call_func(typename gens<sizeof...(Args)>::type());
+                ResultType
+                operator*(void) const
+                {
+                    // TODO
+                    return (*curr)(params);
+                    //return call_func(typename gens< sizeof...(Args)>::type());
             }
 
             unsafe_iterator&
             operator++(void)
             {
                 // release any locks we might have
-                tracking.clear();
-                if (curr != nullptr)
-                {
-                    while (true)
-                    {
-                        curr = curr->next;
-                        if (curr == nullptr)
-                        {
+                            tracking.clear();
+                            if (curr != nullptr)
+                            {
+                                while (true)
+                                {
+                                    curr = curr->next;
+                                    if (curr == nullptr)
+                                    {
+                                        return *this;
+                                    }
+                                    if (curr->usable())
+                                    {
+                                        if (curr->try_lock(tracking))
+                                        {
+                                            return *this;
+                                        }
+                                        else
+                                        {
+                                            // TODO: automatic disconnect
+                                            tracking.clear();
+                                        }
+                                    }
+                                }
+                            }
                             return *this;
                         }
-                        if (curr->usable())
+
+                        bool
+                        operator ==(const unsafe_iterator& rhs) const
                         {
-                            if (curr->try_lock(tracking))
-                            {
-                                return *this;
-                            }
-                            else
-                            {
-                                // TODO: automatic disconnect
-                                tracking.clear();
-                            }
+                            return curr == rhs.curr;
                         }
-                    }
+
+                        bool
+                        operator !=(const unsafe_iterator& rhs) const
+                        {
+                            return curr != rhs.curr;
+                        }
+                    };
                 }
-                return *this;
             }
-
-            bool
-            operator ==(const unsafe_iterator& rhs) const
-            {
-                return curr == rhs.curr;
-            }
-
-            bool
-            operator !=(const unsafe_iterator& rhs) const
-            {
-                return curr != rhs.curr;
-            }
-        };
-    }
-}
 
 #endif /* SIGNAL_HPP_ */

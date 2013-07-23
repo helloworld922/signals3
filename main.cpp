@@ -49,6 +49,12 @@ basic_handler(void)
     }
 }
 
+void
+param_handler(int n)
+{
+    std::cout << n << std::endl;
+}
+
 #ifdef USE_TIMINGS
 
 void
@@ -128,13 +134,54 @@ timing_test(const size_t num_slots)
 
 #endif
 
+struct my_class
+{
+    int val;
+    my_class(void)
+    {
+        val = 5;
+        std::cout << "constructor" << std::endl;
+    }
+    my_class(const my_class& rhs) :
+            val(rhs.val)
+    {
+        std::cout << "copy constructor" << std::endl;
+    }
+
+    my_class(my_class&& rhs) :
+            val(rhs.val)
+    {
+        rhs.val = 0;
+        std::cout << "move constructor" << std::endl;
+    }
+
+    ~my_class(void)
+    {
+        val = 0;
+        std::cout << "destructor" << std::endl;
+    }
+};
+
+void
+test_forwarding(my_class val)
+{
+    std::cout << val.val << std::endl;
+    val.val = 3;
+}
+
 int
 main(void)
 {
-//    boost::signals3::signal<void(void)> mysig;
-//    mysig.push_back(test_handler<0>);
-//    mysig.push_back(test_handler<1>);
-    //timing_test(1);
+//    boost::signals3::signal< void
+//    (my_class) > mysig;
+//    mysig.push_back_unsafe(&test_forwarding);
+//    mysig.push_back_unsafe(&test_forwarding);
+//    my_class obj;
+//    std::cout << "signal: " << std::endl;
+//    mysig.emit_unsafe(obj);
+//    std::cout << "base: " << std::endl;
+//    my_class obj2;
+//    test_forwarding(std::move(obj2));
 
     for (size_t i = 0; i < 8; ++i)
     {

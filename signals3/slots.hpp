@@ -139,7 +139,7 @@ namespace boost
                 }
 
                 ResultType
-                operator()(Args ... args)
+                operator()(Args... args)
                 {
                     return callback(args...);
                 }
