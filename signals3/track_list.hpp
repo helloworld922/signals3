@@ -41,7 +41,7 @@ namespace boost
                 void
                 push_front_impl(::boost::signals3::detail::shared_ptr< node >&& n)
                 {
-                    static ::boost::signals3::detail::shared_ptr< node > empty;
+                    ::boost::signals3::detail::shared_ptr< node > empty;
                     if (!::boost::signals3::detail::atomic_compare_exchange(&head, &empty, n))
                     {
                         // already has a head

@@ -107,7 +107,7 @@ namespace boost
                     unique_lock_type _lock(_mutex);
                     if (tail == nullptr)
                     {
-                        // last node
+                        // only one node
                         tail = node;
                         ::boost::signals3::detail::atomic_store(&head, boost::move(node));
                     }
@@ -118,6 +118,29 @@ namespace boost
                         ::boost::signals3::detail::atomic_store(&(tail->next), node);
                         tail = boost::move(node);
                     }
+                }
+
+                void
+                push_front_impl(
+                        ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base >&& node)
+                {
+                    unique_lock_type _lock(_mutex);
+                    if (head == nullptr)
+                    {
+                        // only one node
+                        tail = node;
+                        group_head = node;
+                    }
+                    else
+                    {
+                        // more than one node
+                        if (group_head == nullptr)
+                        {
+                            group_head = node;
+                        }
+                        node->next = head;
+                    }
+                    ::boost::signals3::detail::atomic_store(&head, boost::move(node));
                 }
 
             public:
@@ -137,6 +160,25 @@ namespace boost
                             ::boost::signals3::detail::make_shared < node > (callback);
                     ::boost::signals3::connection conn(this, n);
                     push_back_impl(boost::move(n));
+                    return conn;
+                }
+
+                connection
+                push_front(const slot_type& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr < node > n(callback);
+                    ::boost::signals3::connection conn(this, n);
+                    push_front_impl(boost::move(n));
+                    return conn;
+                }
+
+                connection
+                push_front(slot_type&& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr< node > n =
+                            ::boost::signals3::detail::make_shared < node > (callback);
+                    ::boost::signals3::connection conn(this, n);
+                    push_front_impl(boost::move(n));
                     return conn;
                 }
 

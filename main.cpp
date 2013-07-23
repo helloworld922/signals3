@@ -134,11 +134,10 @@ int
 main(void)
 {
     boost::signals3::signal<void(void)> mysig;
-    mysig.push_back(&basic_handler);
-    mysig.push_back(&basic_handler);
+    mysig.push_back(&test_handler<0>);
+    mysig.push_front(&test_handler<1>);
     mysig.pop_back();
-    mysig.pop_back();
-    mysig.pop_back();
+    mysig.pop_front();
 
 //    for (size_t i = 0; i < 8; ++i)
 //    {
