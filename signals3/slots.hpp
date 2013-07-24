@@ -24,7 +24,7 @@ namespace boost
             class slot_base< ResultType
             (Args...) >
             {
-                typedef std::vector< boost::weak_ptr< void > > _track_list;
+                typedef std::forward_list< boost::weak_ptr< void > > _track_list;
                 _track_list _tracking;
 
                 static const int _disconnected = INT_MIN;
@@ -35,14 +35,14 @@ namespace boost
                 slot_base&
                 track(const weak_ptr_type& obj)
                 {
-                    _tracking.push_back(obj);
+                    _tracking.push_front(obj);
                     return *this;
                 }
 
                 slot_base&
                 track(weak_ptr_type&& obj)
                 {
-                    _tracking.push_back(std::move(obj));
+                    _tracking.push_front(std::move(obj));
                     return *this;
                 }
 
@@ -121,6 +121,16 @@ namespace boost
                     {
                     }
 
+                slot(const slot& rhs) :
+                        callback(rhs.callback)
+                {
+                }
+
+                slot(slot&& rhs) :
+                        callback(boost::move(rhs.callback))
+                {
+                }
+
                 virtual
                 ~slot(void)
                 {
@@ -139,7 +149,7 @@ namespace boost
                 }
 
                 ResultType
-                operator()(Args... args)
+                operator()(Args ... args)
                 {
                     return callback(args...);
                 }

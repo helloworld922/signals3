@@ -15,9 +15,9 @@
 #include "track_list.hpp"
 
 #include "optional_last_value.hpp"
-#include "detail/extended_signature.hpp"
 #include "slots.hpp"
 #include "connection.hpp"
+#include "detail/extended_signature.hpp"
 #include "signal.hpp"
 
 #include "detail/signals3_impl.hpp"

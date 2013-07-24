@@ -169,28 +169,24 @@ test_forwarding(my_class val)
     val.val = 3;
 }
 
+void
+test_conn(const boost::signals3::connection& conn)
+{
+    std::cout << "test conn" << std::endl;
+}
+
 int
 main(void)
 {
-//    boost::signals3::signal< void
-//    (my_class) > mysig;
-//    mysig.push_back_unsafe(&test_forwarding);
-//    mysig.push_back_unsafe(&test_forwarding);
-//    my_class obj;
-//    std::cout << "signal: " << std::endl;
-//    mysig.emit_unsafe(obj);
-//    std::cout << "base: " << std::endl;
-//    my_class obj2;
-//    test_forwarding(std::move(obj2));
+    boost::signals3::signal< void
+    (void) > mysig;
+    mysig.push_back_extended_unsafe(&test_conn);
+    mysig.emit_unsafe();
 
-    for (size_t i = 0; i < 8; ++i)
-    {
-        std::cout << "i = " << i << std::endl;
-        timing_test(i);
-        std::cout << std::endl;
-    }
-//    const boost::signals3::connection conn = mysig.push_back_extended(&extended_handler);
-//    mysig();
-//    conn.disconnect();
-//    mysig();
+//    for (size_t i = 0; i < 8; ++i)
+//    {
+//        std::cout << "i = " << i << std::endl;
+//        timing_test(i);
+//        std::cout << std::endl;
+//    }
 }

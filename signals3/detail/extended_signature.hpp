@@ -19,7 +19,7 @@ namespace boost
 {
     namespace signals3
     {
-        class connection;
+        //class connection;
 
         namespace detail
         {
@@ -30,11 +30,11 @@ namespace boost
                 struct extended_signature<ResultType
                 (Args...)>
                 {
-                    typedef std::function<ResultType
+                    typedef ::boost::signals3::detail::function<ResultType
                     (const connection&, Args...)> type;
                 };
         }
     }
 }
 
-#endif /* EXTENDED_SIGNATURE_HPP_ */
+#endif // BOOST_SIGNALS3_EXTENDED_SIGNATURE_HPP

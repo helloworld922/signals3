@@ -20,7 +20,9 @@ namespace boost
         template<typename Signature, typename Combiner = optional_last_value<
                 typename std::function< Signature >::result_type >, typename Group = int,
                 typename GroupCompare = std::less< Group >, typename FunctionType = std::function<
-                        Signature > >
+                        Signature >,
+                typename ExtendedFunctionType = typename ::boost::signals3::detail::extended_signature<
+                        Signature >::type>
             class signal;
 
         namespace detail
@@ -49,9 +51,9 @@ namespace boost
         }
 
         template<typename ResultType, typename ... Args, typename Combiner, typename Group,
-                typename GroupCompare, typename FunctionType>
+                typename GroupCompare, typename FunctionType, typename ExtendedFunctionType>
             class signal< ResultType
-            (Args...), Combiner, Group, GroupCompare, FunctionType > : public ::boost::signals3::detail::signal_base
+            (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType > : public ::boost::signals3::detail::signal_base
             {
             public:
                 // typedefs
@@ -63,6 +65,8 @@ namespace boost
                 typedef GroupCompare group_compare_type;
                 typedef boost::signals3::slot< ResultType
                 (Args...), FunctionType > slot_type;
+                typedef boost::signals3::slot< ResultType
+                (const connection&, Args...), ExtendedFunctionType > extended_slot_type;
                 typedef std::atomic< int > atomic_int_type;
             private:
                 // used for unpacking tuple to function call
@@ -105,7 +109,6 @@ namespace boost
 
                 struct node : public t_node_base
                 {
-
                     slot_type callback;
                     node(const slot_type& callback) :
                     callback(callback)
@@ -135,7 +138,6 @@ namespace boost
                     operator()(::boost::signals3::detail::tuple<Args...> params) const override
                     {
                         return call_func(typename gens<sizeof...(Args)>::type(), params);
-                        //return callback.slot_function()(std::forward<Args>(args)...);
                     }
                 };
 
@@ -145,6 +147,38 @@ namespace boost
 
                 struct extended_node : public t_node_base
                 {
+                    extended_slot_type callback;
+                    connection conn;
+
+                    extended_node(const extended_slot_type& callback) :
+                    callback(callback)
+                    {
+                    }
+
+                    extended_node(extended_slot_type&& callback) :
+                    callback(boost::move(callback))
+                    {
+                    }
+
+                    virtual bool
+                    try_lock(
+                            ::boost::signals3::detail::forward_list<
+                            ::boost::signals3::detail::shared_ptr< void > >& list) const override
+                    {
+                        return callback.try_lock(list);
+                    }
+
+                    template<int... S>
+                    inline ResultType call_func(seq<S...>, std::tuple<Args...>& params) const
+                    {
+                        return callback.slot_function()(conn, std::forward<Args>(std::get<S>(params))...);
+                    }
+
+                    virtual ResultType
+                    operator()(::boost::signals3::detail::tuple<Args...> params) const override
+                    {
+                        return call_func(typename gens<sizeof...(Args)>::type(), params);
+                    }
                 };
 
                 struct extended_grouped_node : public extended_node
@@ -247,10 +281,14 @@ namespace boost
                 }
 
             public:
+                signal(void) : head(), tail(), group_head(), _mutex(), combiner(), group_compare()
+                {
+                }
+
                 connection
                 push_back(const slot_type& callback)
                 {
-                    ::boost::signals3::detail::shared_ptr < node > n(callback);
+                    ::boost::signals3::detail::shared_ptr < node > n = ::boost::signals3::detail::make_shared<node>(callback);
                     ::boost::signals3::connection conn(this, n);
                     push_back_impl(boost::move(n));
                     return conn;
@@ -259,17 +297,74 @@ namespace boost
                 connection
                 push_back(slot_type&& callback)
                 {
-                    ::boost::signals3::detail::shared_ptr< node > n =
-                    ::boost::signals3::detail::make_shared < node > (callback);
+                    ::boost::signals3::detail::shared_ptr<node> n = ::boost::signals3::detail::make_shared<node>(boost::move(callback));
                     ::boost::signals3::connection conn(this, n);
                     push_back_impl(boost::move(n));
                     return conn;
                 }
 
                 connection
+                push_back_unsafe(const slot_type& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr<node> n = ::boost::signals3::detail::make_shared<node>(callback);
+                    ::boost::signals3::connection conn(this, n);
+                    push_back_impl_unsafe(n);
+                    return conn;
+                }
+
+                connection
+                push_back_unsafe(slot_type&& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr<node> n = ::boost::signals3::detail::make_shared<node>(callback);
+                    ::boost::signals3::connection conn(this, n);
+                    push_back_impl_unsafe(boost::move(n));
+                    return conn;
+                }
+
+                connection
+                push_back_extended(const extended_slot_type& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr<extended_node> n = ::boost::signals3::detail::make_shared<extended_node>(callback);
+                    ::boost::signals3::connection conn(this, n);
+                    n->conn = conn;
+                    push_back_impl(boost::move(n));
+                    return conn;
+                }
+
+                connection
+                push_back_extended(extended_slot_type&& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr<extended_node> n = ::boost::signals3::detail::make_shared<extended_node>(boost::move(callback));
+                    ::boost::signals3::connection conn(this, n);
+                    n->conn = conn;
+                    push_back_impl(boost::move(n));
+                    return conn;
+                }
+
+                connection
+                push_back_extended_unsafe(const extended_slot_type& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr<extended_node> n = ::boost::signals3::detail::make_shared<extended_node>(callback);
+                    ::boost::signals3::connection conn(this, n);
+                    n->conn = conn;
+                    push_back_impl_unsafe(boost::move(n));
+                    return conn;
+                }
+
+                connection
+                push_back_extended_unsafe(extended_slot_type&& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr<extended_node> n = ::boost::signals3::detail::make_shared<extended_node>(boost::move(callback));
+                    ::boost::signals3::connection conn(this, n);
+                    n->conn = conn;
+                    push_back_impl_unsafe(boost::move(n));
+                    return conn;
+                }
+
+                connection
                 push_front(const slot_type& callback)
                 {
-                    ::boost::signals3::detail::shared_ptr < node > n(callback);
+                    ::boost::signals3::detail::shared_ptr<node> n = ::boost::signals3::detail::make_shared<node>(callback);
                     ::boost::signals3::connection conn(this, n);
                     push_front_impl(boost::move(n));
                     return conn;
@@ -278,10 +373,67 @@ namespace boost
                 connection
                 push_front(slot_type&& callback)
                 {
-                    ::boost::signals3::detail::shared_ptr< node > n =
-                    ::boost::signals3::detail::make_shared < node > (callback);
+                    ::boost::signals3::detail::shared_ptr<node> n = ::boost::signals3::detail::make_shared<node>(boost::move(callback));
                     ::boost::signals3::connection conn(this, n);
                     push_front_impl(boost::move(n));
+                    return conn;
+                }
+
+                connection
+                push_front_unsafe(const slot_type& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr<node> n = ::boost::signals3::detail::make_shared<node>(callback);
+                    ::boost::signals3::connection conn(this, n);
+                    push_front_impl_unsafe(boost::move(n));
+                    return conn;
+                }
+
+                connection
+                push_front_unsafe(slot_type&& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr<node> n = ::boost::signals3::detail::make_shared<node>(boost::move(callback));
+                    ::boost::signals3::connection conn(this, n);
+                    push_front_impl_unsafe(boost::move(n));
+                    return conn;
+                }
+
+                connection
+                push_front_extended(const extended_slot_type& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr<extended_node> n = ::boost::signals3::detail::make_shared<extended_node>(callback);
+                    ::boost::signals3::connection conn(this, n);
+                    n->conn = conn;
+                    push_front_impl(boost::move(n));
+                    return conn;
+                }
+
+                connection
+                push_front_extended(extended_slot_type&& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr<extended_node> n = ::boost::signals3::detail::make_shared<extended_node>(boost::move(callback));
+                    ::boost::signals3::connection conn(this, n);
+                    n->conn = conn;
+                    push_front_impl(boost::move(n));
+                    return conn;
+                }
+
+                connection
+                push_front_extended_unsafe(const extended_slot_type& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr<extended_node> n = ::boost::signals3::detail::make_shared<extended_node>(callback);
+                    ::boost::signals3::connection conn(this, n);
+                    n->conn = conn;
+                    push_front_impl_unsafe(boost::move(n));
+                    return conn;
+                }
+
+                connection
+                push_front_extended_unsafe(extended_slot_type&& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr<extended_node> n = ::boost::signals3::detail::make_shared<extended_node>(boost::move(callback));
+                    ::boost::signals3::connection conn(this, n);
+                    n->conn = conn;
+                    push_front_impl_unsafe(boost::move(n));
                     return conn;
                 }
 
@@ -292,8 +444,7 @@ namespace boost
                     if (tail != nullptr)
                     {
                         // actually have a node to remove
-                        ::boost::signals3::detail::shared_ptr< t_node_base > prev =
-                        tail->prev.lock();
+                        ::boost::signals3::detail::shared_ptr< t_node_base > prev = tail->prev.lock();
                         if (prev != nullptr)
                         {
                             // more than 1 node
@@ -302,8 +453,7 @@ namespace boost
                             {
                                 group_head = prev;
                             }
-                            ::boost::signals3::detail::atomic_store(&(prev->next),
-                                    ::boost::signals3::detail::shared_ptr< t_node_base >());
+                            ::boost::signals3::detail::atomic_store(&(prev->next), ::boost::signals3::detail::shared_ptr< t_node_base >());
 
                             tail = boost::move(prev);
                         }
@@ -343,52 +493,13 @@ namespace boost
                     }
                 }
 
-                connection
-                push_back_unsafe(const slot_type& callback)
-                {
-                    ::boost::signals3::detail::shared_ptr < node > n(callback);
-                    ::boost::signals3::connection conn(this, n);
-                    push_back_impl_unsafe(boost::move(n));
-                    return conn;
-                }
-
-                connection
-                push_back_unsafe(slot_type&& callback)
-                {
-                    ::boost::signals3::detail::shared_ptr< node > n =
-                    ::boost::signals3::detail::make_shared < node > (callback);
-                    ::boost::signals3::connection conn(this, n);
-                    push_back_impl_unsafe(boost::move(n));
-                    return conn;
-                }
-
-                connection
-                push_front_unsafe(const slot_type& callback)
-                {
-                    ::boost::signals3::detail::shared_ptr < node > n(callback);
-                    ::boost::signals3::connection conn(this, n);
-                    push_front_impl_unsafe(boost::move(n));
-                    return conn;
-                }
-
-                connection
-                push_front_unsafe(slot_type&& callback)
-                {
-                    ::boost::signals3::detail::shared_ptr< node > n =
-                    ::boost::signals3::detail::make_shared < node > (callback);
-                    ::boost::signals3::connection conn(this, n);
-                    push_front_impl_unsafe(boost::move(n));
-                    return conn;
-                }
-
                 void
                 pop_back_unsafe(void)
                 {
                     if (tail != nullptr)
                     {
                         // actually have a node to remove
-                        ::boost::signals3::detail::shared_ptr< t_node_base > prev =
-                        tail->prev.lock();
+                        ::boost::signals3::detail::shared_ptr< t_node_base > prev = tail->prev.lock();
                         if (prev != nullptr)
                         {
                             // more than 1 node
@@ -499,9 +610,9 @@ namespace boost
             };
 
         template<typename ResultType, typename ... Args, typename Combiner, typename Group,
-                typename GroupCompare, typename FunctionType>
+                typename GroupCompare, typename FunctionType, typename ExtendedFunctionType>
             class signal< ResultType
-            (Args...), Combiner, Group, GroupCompare, FunctionType >::iterator
+            (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >::iterator
             {
                 ::boost::signals3::detail::shared_ptr< t_node_base > curr;
                 ::boost::signals3::detail::tuple< Args... >& params;
@@ -528,7 +639,7 @@ namespace boost
                 operator++(void)
                 {
                     // release any locks we might have
-                    //tracking.clear();
+                    tracking.clear();
                     if (curr != nullptr)
                     {
                         while (true)
@@ -569,9 +680,9 @@ namespace boost
             };
 
         template<typename ResultType, typename ... Args, typename Combiner, typename Group,
-                typename GroupCompare, typename FunctionType>
+                typename GroupCompare, typename FunctionType, typename ExtendedFunctionType>
             class signal< ResultType
-            (Args...), Combiner, Group, GroupCompare, FunctionType >::unsafe_iterator
+            (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >::unsafe_iterator
             {
                 ::boost::signals3::detail::shared_ptr< t_node_base > curr;
                 ::boost::signals3::detail::tuple< Args... >& params;
