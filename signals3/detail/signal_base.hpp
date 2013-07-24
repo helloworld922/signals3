@@ -37,6 +37,9 @@ namespace boost
                 virtual void
                 disconnect(::boost::signals3::detail::shared_ptr< node_base >&& node) = 0;
 
+                virtual void
+                disconnect_unsafe(::boost::signals3::detail::shared_ptr< node_base >&& node) = 0;
+
             public:
                 virtual
                 ~signal_base(void)

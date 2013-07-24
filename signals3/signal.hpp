@@ -345,6 +345,12 @@ namespace boost
                     disconnect(node);
                 }
 
+                virtual void disconnect_unsafe(::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base >&& n) override
+                {
+                    ::boost::signals3::detail::shared_ptr<t_node_base> node = ::boost::signals3::detail::static_pointer_cast<t_node_base>(boost::move(n));
+                    disconnect_unsafe(node);
+                }
+
                 void disconnect_unsafe(::boost::signals3::detail::shared_ptr< t_node_base >& node)
                 {
                     if(node->mark_disconnected())

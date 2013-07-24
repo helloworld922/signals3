@@ -92,6 +92,17 @@ namespace boost
                 }
             }
 
+            void
+            disconnect_unsafe(void)
+            {
+                ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
+                        _node.lock();
+                if (temp != nullptr)
+                {
+                    _sig->disconnect_unsafe(boost::move(temp));
+                }
+            }
+
             bool
             connected(void) const
             {
@@ -115,6 +126,11 @@ namespace boost
                 }
                 return false;
             }
+        };
+
+        class scoped_connection
+        {
+
         };
     }
 }

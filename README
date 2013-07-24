@@ -15,18 +15,19 @@ Currently implemented towards the C++11 standard, but the goal is to eventually 
 
 Current dependencies:
 
-1. Boost Thread (mutex, unique_lock)*
-2. Boost Atomic (atomic boost::shared_ptr)*
-3. Boost shared_ptr/weak_ptr/make_shared*
-4. c++11 Variadic Templates
-5. c++11 std::function
-6. c++11 auto
-7. c++11 move semantics and lvalue refs
-8. boost move**
-9. c++11 tuple
-10. c++11 atomics
-11. c++11 forward_list
-12. c++11 std::forward
+- Boost Thread (mutex, unique_lock)*
+- Boost Atomic (atomic boost::shared_ptr)*
+- Boost shared_ptr/weak_ptr/make_shared*
+- c++11 Variadic Templates
+- c++11 std::function
+- c++11 auto
+- c++11 move semantics and lvalue refs
+- boost move**
+- c++11 tuple
+- c++11 atomics
+- c++11 forward_list
+- c++11 std::forward
+- boost optional
 
 hopefully that's all of them.
 
@@ -46,22 +47,27 @@ General Use
 The library is a header-only library unless boost::thread is used, which relies on boost::system which does have a compiled library.
 See the boost documentation for how to build boost libraries.
 
-You should only include signals3/signals3.hpp directly with your project. There are some slight interface differences:
+Header file description:
+	signals3/signals.hpp - main header file which gathers all header files
+	signals3/signal.hpp - definition for signal class
+	signals3/optional_last_value.hpp - optional_last_value combiner (basically the same as Signals2)
+	signals3/slots.hpp - definition for slot
 
-1. signal.operator() is now signal.emit
-2. signal.connect has been split into signal.push_front/signal.push_back
-3. you can disconnect the first/last slot using signal.pop_front/signal.pop_back
-4. There are explicit thread unsafe handles of various functions. These have the same name as the thread-safe version, with an _unsafe at the end. For example: signal.emit_unsafe
+For the most part including signals3/signals3.hpp will work. There are some slight interface differences:
+
+- signal.operator() is now signal.emit
+- signal.connect has been split into signal.push_front/signal.push_back
+- you can disconnect the first/last slot using signal.pop_front/signal.pop_back
+- There are explicit thread unsafe handles of various functions. These have the same name as the thread-safe version, with an _unsafe at the end. For example: signal.emit_unsafe
 
 keep in mind many features aren't quite implemented yet, and there may be many bugs. In other words, it's safe for testing and playing around with, but in general not ready for use.
 
 Notable missing features:
 
-1. disconnect specific slot by passing a function/slot object.
-2. grouped slots.
-3. connection object interface is not yet implemented.
-4. no scoped connection or blocked connection (underlying details are implemented, just public handlers aren't available).
-5. possibly other features
+- disconnect specific slot by passing a function/slot object.
+- grouped slots.
+- no scoped connection or blocked connection (underlying details are implemented, just public handlers aren't available).
+- possibly other features
 
 All handles reside in the boost::signals3 namespace.
 
