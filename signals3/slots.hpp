@@ -58,12 +58,12 @@ namespace boost
                     return *this;
                 }
 
-                track_list< boost::weak_ptr< void > >&
+                _track_list&
                 tracking(void)
                 {
                     return _tracking;
                 }
-                const track_list< boost::weak_ptr< void > >&
+                const _track_list&
                 tracking(void) const
                 {
                     return _tracking;
