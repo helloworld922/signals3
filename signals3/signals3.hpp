@@ -1,12 +1,7 @@
 //
 // signals3.hpp
 //
-// Main header file to include. Should not directly include any other header files!
-//
 // (c) 2013 helloworld922
-//
-//  Created on: Jul 21, 2013
-//      Author: helloworld922
 //
 //  Distributed under the Boost Software License, Version 1.0. (See
 //  accompanying file LICENSE_1_0.txt or copy at
