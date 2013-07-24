@@ -48,10 +48,11 @@ The library is a header-only library unless boost::thread is used, which relies 
 See the boost documentation for how to build boost libraries.
 
 Header file description:
-	signals3/signals.hpp - main header file which gathers all header files
-	signals3/signal.hpp - definition for signal class
-	signals3/optional_last_value.hpp - optional_last_value combiner (basically the same as Signals2)
-	signals3/slots.hpp - definition for slot
+	boost/signals3/signals3.hpp - main header file which gathers all header files
+	boost/signals3/signal.hpp - definition for signal class
+	boost/signals3/optional_last_value.hpp - optional_last_value combiner (basically the same as Signals2)
+	boost/signals3/slots.hpp - definition for slot
+	boost/signals3/connection.hpp - connection header file
 
 For the most part including signals3/signals3.hpp will work. There are some slight interface differences:
 
