@@ -1,0 +1,84 @@
+signals3 README
+
+(c) 2013 helloworld922
+
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+=======================================================================
+
+Signals/Slots implementation based off of atomic operations, with lock-free emits.
+
+The target is to implement all features currently offered by Boost Signals2 while keeping lock-free emits.
+
+Currently implemented towards the C++11 standard, but the goal is to eventually back-port to support C++03 using other Boost libraries.
+
+Current dependencies:
+
+1. Boost Thread (mutex, unique_lock)*
+2. Boost Atomic (atomic boost::shared_ptr)*
+3. Boost shared_ptr/weak_ptr/make_shared*
+4. c++11 Variadic Templates
+5. c++11 std::function
+6. c++11 auto
+7. c++11 move semantics and lvalue refs
+8. boost move**
+9. c++11 tuple
+10. c++11 atomics
+11. c++11 forward_list
+12. c++11 std::forward
+
+hopefully that's all of them.
+
+*note:
+Certain boost libraries are used because my current development platform doesn't support all c++11 features.
+They are used in a manner which is consistent with the c++11 standard. You can take a look at signals3/detail/compiler_support.hpp and switch out appropriate components.
+
+**note:
+The actual code uses && for lvalue refs, and boost::move which binds to std::bind if compiler support is available.
+Eventually I will find/replace with the appropriate Boost macro to get c++03 support.
+
+
+
+======================
+General Use
+======================
+The library is a header-only library unless boost::thread is used, which relies on boost::system which does have a compiled library.
+See the boost documentation for how to build boost libraries.
+
+You should only include signals3/signals3.hpp directly with your project. There are some slight interface differences:
+
+1. signal.operator() is now signal.emit
+2. signal.connect has been split into signal.push_front/signal.push_back
+3. you can disconnect the first/last slot using signal.pop_front/signal.pop_back
+4. There are explicit thread unsafe handles of various functions. These have the same name as the thread-safe version, with an _unsafe at the end. For example: signal.emit_unsafe
+
+keep in mind many features aren't quite implemented yet, and there may be many bugs. In other words, it's safe for testing and playing around with, but in general not ready for use.
+
+Notable missing features:
+
+1. disconnect specific slot by passing a function/slot object.
+2. grouped slots.
+3. connection object interface is not yet implemented.
+4. no scoped connection or blocked connection (underlying details are implemented, just public handlers aren't available).
+5. possibly other features
+
+All handles reside in the boost::signals3 namespace.
+
+====================
+Design Goals
+====================
+The main design goal is observed by what signals/slots are typically used for:
+
+1. Connecting/disconnecting slots is usually not that time critical.
+2. Most signals either have no slots, or very few slots connected.
+3. Signals may be invoked from multiple threads, and usually can be evaluated asynchronously. It seems like slots usually can be evaluated asynchronously, but they could be strongly ordered, too. In any case, only forward iteration is required for emitting a signal.
+4. Emitting should be as fast as possible.
+
+To solve this, the slots are tracked in a doubly-linked list which is always atomically a consistent singly linked list.
+This allows for lock-free signal emit and a single writer (write operations typically must obtain a mutex).
+Additionally, handlers have been added which allow for thread-unsafe operations which allow for external synchronization, or no synchronization at all if the signal will not be modified under general use.
+
+The library is fully re-entrant, thread-safe* (with thread-unsafe handlers added), and type-safe.
+
+*note: thread safety guarantee is similar to Boost Signals2 thread safety. For example, building a slot is not implemented in a thread-safe manner.
