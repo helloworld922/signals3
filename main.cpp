@@ -180,7 +180,16 @@ main(void)
 {
     boost::signals3::signal< void
     (void) > mysig;
-    mysig.push_back_extended_unsafe(&test_conn);
+    boost::signals3::slot< void
+    (void) > my_slot(&test_handler< 0 >);
+    boost::signals3::detail::shared_ptr< int > var = boost::signals3::detail::make_shared< int >(5);
+    my_slot.track(var);
+    mysig.push_back_unsafe(boost::move(my_slot));
+    std::cout << "still valid" << std::endl;
+    mysig.emit_unsafe();
+
+    var.reset();
+    std::cout << "invalid" << std::endl;
     mysig.emit_unsafe();
 
 //    for (size_t i = 0; i < 8; ++i)

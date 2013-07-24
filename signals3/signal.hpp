@@ -86,14 +86,76 @@ namespace boost
                 {
                     ::boost::signals3::detail::shared_ptr< t_node_base > next;
                     ::boost::signals3::detail::weak_ptr< t_node_base > prev;
-                    ::boost::signals3::detail::atomic< int > _unusable;
+                    mutable ::boost::signals3::detail::atomic< int > _unusable;
 
                     static const int _disconnected = INT_MIN;
+
+                    /**
+                     * @return true if was not previously marked disconnectd
+                     */
+                    bool mark_disconnected(void) const
+                    {
+                        return _unusable.exchange(_disconnected) != _disconnected;
+                    }
+
+                    bool block(void) const
+                    {
+                        while(true)
+                        {
+                            int snapshot = _unusable.load();
+                            if(snapshot == _disconnected)
+                            {
+                                return false;
+                            }
+                            else
+                            {
+                                int old = snapshot;
+                                ++snapshot;
+                                if(_unusable.compare_exchange_weak(old, snapshot))
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                        return false;
+                    }
+
+                    bool unblock(void) const
+                    {
+                        while(true)
+                        {
+                            int snapshot = _unusable.load();
+                            if(snapshot == _disconnected)
+                            {
+                                return false;
+                            }
+                            else
+                            {
+                                int old = snapshot;
+                                --snapshot;
+                                if(_unusable.compare_exchange_weak(old, snapshot))
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                        return false;
+                    }
 
                     virtual bool
                     try_lock(
                             ::boost::signals3::detail::forward_list<
                             ::boost::signals3::detail::shared_ptr< void > >& list) const = 0;
+
+                    bool blocked(void) const
+                    {
+                        return _unusable.load() > 0;
+                    }
+
+                    bool connected(void) const
+                    {
+                        return _unusable.load() != _disconnected;
+                    }
 
                     bool
                     usable(void) const
@@ -186,8 +248,10 @@ namespace boost
                 };
 
                 class iterator;
+                //friend class signal::iterator;
 
                 class unsafe_iterator;
+                //friend class signal::unsafe_iterator;
 
                 // fields
                 ::boost::signals3::detail::shared_ptr< t_node_base > head;
@@ -278,6 +342,112 @@ namespace boost
                         node->next = head;
                     }
                     head = boost::move(node);
+                }
+
+                void pop_back_impl(void)
+                {
+                    // assumes caller already has a unique lock
+                    if (tail != nullptr)
+                    {
+                        // actually have a node to remove
+                        ::boost::signals3::detail::shared_ptr< t_node_base > prev = tail->prev.lock();
+                        if (prev != nullptr)
+                        {
+                            // more than 1 node
+                            tail->prev.reset();
+                            if (group_head == tail)
+                            {
+                                group_head = prev;
+                            }
+                            ::boost::signals3::detail::atomic_store(&(prev->next), ::boost::signals3::detail::shared_ptr< t_node_base >());
+
+                            tail = boost::move(prev);
+                        }
+                        else
+                        {
+                            // only one node
+                            tail.reset();
+                            group_head.reset();
+                            ::boost::signals3::detail::atomic_store(&head, tail);
+                        }
+                    }
+                }
+
+                void pop_front_impl(void)
+                {
+                    // assumes caller already has a unique lock
+                    if (head != nullptr)
+                    {
+                        // actually have a node to remove
+                        if (head == tail)
+                        {
+                            // only have one node
+                            tail.reset();
+                            group_head.reset();
+                            ::boost::signals3::detail::atomic_store(&head, tail);
+                        }
+                        else
+                        {
+                            // more than one node
+                            if (group_head == head)
+                            {
+                                group_head.reset();
+                            }
+                            ::boost::signals3::detail::atomic_store(&head, head->next);
+                        }
+                    }
+                }
+
+                void disconnect(::boost::signals3::detail::shared_ptr< t_node_base >& node)
+                {
+                    unique_lock_type _lock(_mutex);
+                    if(node->mark_disconnected())
+                    {
+                        if(node == head)
+                        {
+                            pop_front_impl();
+                        }
+                        else if(node == tail)
+                        {
+                            pop_back_impl();
+                        }
+                        else
+                        {
+                            ::boost::signals3::detail::shared_ptr< t_node_base > prev = node->prev.lock();
+                            if(node == group_head)
+                            {
+                                group_head = prev;
+                            }
+                            ::boost::signals3::detail::atomic_store(&(prev->next), node->next);
+                            node->next->prev = boost::move(prev);
+                        }
+                    }
+                }
+
+                void disconnect_unsafe(::boost::signals3::detail::shared_ptr< t_node_base >& node)
+                {
+                    // TODO
+                    if(node->mark_disconnected())
+                    {
+                        if(node == head)
+                        {
+                            pop_front_unsafe();
+                        }
+                        else if(node == tail)
+                        {
+                            pop_back_unsafe();
+                        }
+                        else
+                        {
+                            ::boost::signals3::detail::shared_ptr< t_node_base > prev = node->prev.lock();
+                            if(node == group_head)
+                            {
+                                group_head = prev;
+                            }
+                            prev->next = node->next;
+                            node->next->prev = boost::move(prev);
+                        }
+                    }
                 }
 
             public:
@@ -441,56 +611,14 @@ namespace boost
                 pop_back(void)
                 {
                     unique_lock_type _lock(_mutex);
-                    if (tail != nullptr)
-                    {
-                        // actually have a node to remove
-                        ::boost::signals3::detail::shared_ptr< t_node_base > prev = tail->prev.lock();
-                        if (prev != nullptr)
-                        {
-                            // more than 1 node
-                            tail->prev.reset();
-                            if (group_head == tail)
-                            {
-                                group_head = prev;
-                            }
-                            ::boost::signals3::detail::atomic_store(&(prev->next), ::boost::signals3::detail::shared_ptr< t_node_base >());
-
-                            tail = boost::move(prev);
-                        }
-                        else
-                        {
-                            // only one node
-                            tail.reset();
-                            group_head.reset();
-                            ::boost::signals3::detail::atomic_store(&head, tail);
-                        }
-                    }
+                    pop_back_impl();
                 }
 
                 void
                 pop_front(void)
                 {
                     unique_lock_type _lock(_mutex);
-                    if (head != nullptr)
-                    {
-                        // actually have a node to remove
-                        if (head == tail)
-                        {
-                            // only have one node
-                            tail.reset();
-                            group_head.reset();
-                            ::boost::signals3::detail::atomic_store(&head, tail);
-                        }
-                        else
-                        {
-                            // more than one node
-                            if (group_head == head)
-                            {
-                                group_head.reset();
-                            }
-                            ::boost::signals3::detail::atomic_store(&head, head->next);
-                        }
-                    }
+                    pop_front_impl();
                 }
 
                 void
@@ -564,8 +692,9 @@ namespace boost
                         }
                         else if (!begin_ptr->try_lock(tracking_list))
                         {
-                            // TODO: automatic disconnect
+                            // automatic disconnect
                             tracking_list.clear();
+                            disconnect(begin_ptr);
                             begin_ptr = ::boost::signals3::detail::atomic_load(&(begin_ptr->next));
                         }
                         else
@@ -573,8 +702,8 @@ namespace boost
                             break;
                         }
                     }
-                    iterator begin(boost::move(begin_ptr), params, tracking_list);
-                    iterator end(nullptr, params, tracking_list);
+                    iterator begin(boost::move(begin_ptr), params, tracking_list, *this);
+                    iterator end(nullptr, params, tracking_list, *this);
                     return combiner(boost::move(begin), boost::move(end));
                 }
 
@@ -594,8 +723,9 @@ namespace boost
                         }
                         else if (!begin_ptr->try_lock(tracking_list))
                         {
-                            // TODO: automatic disconnect
+                            // automatic disconnect
                             tracking_list.clear();
+                            disconnect_unsafe(begin_ptr);
                             begin_ptr = begin_ptr->next;
                         }
                         else
@@ -603,8 +733,8 @@ namespace boost
                             break;
                         }
                     }
-                    unsafe_iterator begin(boost::move(begin_ptr), params, tracking_list);
-                    unsafe_iterator end(nullptr, params, tracking_list);
+                    unsafe_iterator begin(boost::move(begin_ptr), params, tracking_list, *this);
+                    unsafe_iterator end(nullptr, params, tracking_list, *this);
                     return combiner(boost::move(begin), boost::move(end));
                 }
             };
@@ -618,13 +748,17 @@ namespace boost
                 ::boost::signals3::detail::tuple< Args... >& params;
                 ::boost::signals3::detail::forward_list<
                         ::boost::signals3::detail::shared_ptr< void > >& tracking;
+                signal< ResultType
+                (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >& sig;
 
             public:
                 iterator(::boost::signals3::detail::shared_ptr< t_node_base >&& start_node,
                         ::boost::signals3::detail::tuple< Args... >& params,
                         ::boost::signals3::detail::forward_list<
-                                ::boost::signals3::detail::shared_ptr< void > >& tracking) :
-                        curr(boost::move(start_node)), params(params), tracking(tracking)
+                                ::boost::signals3::detail::shared_ptr< void > >& tracking,
+                        signal< ResultType
+                        (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >& sig) :
+                        curr(boost::move(start_node)), params(params), tracking(tracking), sig(sig)
                 {
                 }
 
@@ -656,7 +790,8 @@ namespace boost
                                 }
                                 else
                                 {
-                                    // TODO: automatic disconnect
+                                    // automatic disconnect
+                                    sig.disconnect(curr);
                                     tracking.clear();
                                 }
                             }
@@ -687,13 +822,17 @@ namespace boost
                 ::boost::signals3::detail::tuple< Args... >& params;
                 ::boost::signals3::detail::forward_list<
                         ::boost::signals3::detail::shared_ptr< void > >& tracking;
+                signal< ResultType
+                (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >& sig;
 
             public:
                 unsafe_iterator(::boost::signals3::detail::shared_ptr< t_node_base >&& start_node,
                         ::boost::signals3::detail::tuple< Args... >& params,
                         ::boost::signals3::detail::forward_list<
-                                ::boost::signals3::detail::shared_ptr< void > >& tracking) :
-                        curr(boost::move(start_node)), params(params), tracking(tracking)
+                                ::boost::signals3::detail::shared_ptr< void > >& tracking,
+                        signal< ResultType
+                        (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >& sig) :
+                        curr(boost::move(start_node)), params(params), tracking(tracking), sig(sig)
                 {
 
                 }
@@ -726,8 +865,9 @@ namespace boost
                                 }
                                 else
                                 {
-                                    // TODO: automatic disconnect
+                                    // automatic disconnect
                                     tracking.clear();
+                                    sig.disconnect_unsafe(curr);
                                 }
                             }
                         }
