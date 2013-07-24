@@ -18,8 +18,12 @@ namespace boost
 {
     namespace signals3
     {
+        class scoped_connection;
+
         class connection
         {
+            friend class scoped_connection;
+
             // maintains no ownership over _sig
             ::boost::signals3::detail::signal_base* _sig;
             ::boost::signals3::detail::weak_ptr< ::boost::signals3::detail::node_base > _node;
@@ -128,9 +132,37 @@ namespace boost
             }
         };
 
-        class scoped_connection
+        class scoped_connection : public connection
         {
+        public:
+            scoped_connection(const connection& conn) :
+                    connection(conn)
+            {
 
+            }
+
+            scoped_connection(connection&& conn) :
+                    connection(boost::move(conn))
+            {
+
+            }
+
+            /**
+             * Not thread safe!
+             */
+            connection
+            release(void)
+            {
+                connection conn(*this);
+                _sig = nullptr;
+                _node.reset();
+                return conn;
+            }
+
+            ~scoped_connection(void)
+            {
+                disconnect();
+            }
         };
     }
 }

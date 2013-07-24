@@ -175,13 +175,15 @@ test_conn(const boost::signals3::connection& conn)
 int
 main(void)
 {
-    boost::signals3::signal<void(void)> mysig;
-    boost::signals3::connection conn = mysig.push_back_unsafe(&test_handler<0>);
-    std::cout << "connected" << std::endl;
-    mysig.emit();
-
-    conn.disconnect_unsafe();
-    std::cout << "disconnected" << std::endl;
+    boost::signals3::signal< void
+    (void) > mysig;
+    boost::signals3::connection conn = mysig.push_back_unsafe(&test_handler< 0 >);
+    {
+        boost::signals3::scoped_connection sconn(conn);
+        std::cout << "connected" << std::endl;
+        mysig.emit();
+    }
+    std::cout << "scoped connection disconnected" << std::endl;
     mysig.emit();
 //    for (size_t i = 0; i < 8; ++i)
 //    {
