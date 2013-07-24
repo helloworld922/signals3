@@ -7,10 +7,10 @@
 //  accompanying file LICENSE_1_0.txt or copy at
 //  http://www.boost.org/LICENSE_1_0.txt)
 
-#define USE_TIMINGS
+//#define USE_TIMINGS
 
 //#define STD_FUNC_TEST
-#define SIG3_TEST
+//#define SIG3_TEST
 //#define SIG2_TEST
 
 #ifdef STD_FUNC_TEST
@@ -22,6 +22,8 @@
 #ifdef SIG2_TEST
 #include <boost/signals2.hpp>
 #endif
+
+#include "test/connection_test.hpp"
 
 //#include "signals3/signals3.hpp"
 #include <iostream>
@@ -175,16 +177,7 @@ test_conn(const boost::signals3::connection& conn)
 int
 main(void)
 {
-    boost::signals3::signal< void
-    (void) > mysig;
-    boost::signals3::connection conn = mysig.push_back_unsafe(&test_handler< 0 >);
-    {
-        boost::signals3::scoped_connection sconn(conn);
-        std::cout << "connected" << std::endl;
-        mysig.emit();
-    }
-    std::cout << "scoped connection disconnected" << std::endl;
-    mysig.emit();
+    boost::signals3::test::compile_test();
 //    for (size_t i = 0; i < 8; ++i)
 //    {
 //        std::cout << "i = " << i << std::endl;

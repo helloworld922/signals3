@@ -20,18 +20,21 @@ namespace boost
     {
         class scoped_connection;
 
+        template<typename Signature, typename Combiner, typename Group, typename GroupCompare,
+                typename FunctionType, typename ExtendedFunctionType, typename Mutex>
+            class signal;
+
         class connection
         {
             friend class scoped_connection;
 
+            template<typename Signature, typename Combiner, typename Group, typename GroupCompare,
+                    typename FunctionType, typename ExtendedFunctionType, typename Mutex>
+                friend class ::boost::signals3::signal;
+
             // maintains no ownership over _sig
             ::boost::signals3::detail::signal_base* _sig;
             ::boost::signals3::detail::weak_ptr< ::boost::signals3::detail::node_base > _node;
-        public:
-            connection(void) :
-                    _sig(nullptr)
-            {
-            }
 
             connection(::boost::signals3::detail::signal_base* _sig,
                     const ::boost::signals3::detail::weak_ptr< ::boost::signals3::detail::node_base >& _node) :
@@ -43,6 +46,37 @@ namespace boost
                     ::boost::signals3::detail::weak_ptr< ::boost::signals3::detail::node_base >&& _node) :
                     _sig(_sig), _node(boost::move(_node))
             {
+            }
+        public:
+            connection(void) :
+                    _sig(nullptr)
+            {
+            }
+
+            connection(const connection& conn) :
+                    _sig(conn._sig), _node(conn._node)
+            {
+            }
+
+            connection(connection&& conn) :
+                    _sig(conn._sig), _node(boost::move(conn._node))
+            {
+            }
+
+            connection&
+            operator=(const connection& conn)
+            {
+                _sig = conn._sig;
+                _node = conn._node;
+                return *this;
+            }
+
+            connection&
+            operator=(connection&& conn)
+            {
+                _sig = boost::move(conn._sig);
+                _node = boost::move(conn._node);
+                return *this;
             }
 
             virtual
@@ -153,6 +187,15 @@ namespace boost
                 disconnect();
                 _sig = conn._sig;
                 _node = conn._node;
+                return *this;
+            }
+
+            scoped_connection&
+            operator=(connection&& conn)
+            {
+                disconnect();
+                _sig = boost::move(conn._sig);
+                _node = boost::move(conn._node);
                 return *this;
             }
 
