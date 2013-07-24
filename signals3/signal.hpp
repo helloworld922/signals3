@@ -315,7 +315,7 @@ namespace boost
                 connection
                 push_back_unsafe(slot_type&& callback)
                 {
-                    ::boost::signals3::detail::shared_ptr<node> n = ::boost::signals3::detail::make_shared<node>(callback);
+                    ::boost::signals3::detail::shared_ptr<node> n = ::boost::signals3::detail::make_shared<node>(boost::move(callback));
                     ::boost::signals3::connection conn(this, n);
                     push_back_impl_unsafe(boost::move(n));
                     return conn;
@@ -631,7 +631,6 @@ namespace boost
                 ResultType
                 operator*(void) const
                 {
-                    // TODO
                     return (*curr)(params);
                 }
 
@@ -702,9 +701,7 @@ namespace boost
                 ResultType
                 operator*(void) const
                 {
-                    // TODO
                     return (*curr)(params);
-                    //return call_func(typename gens< sizeof...(Args)>::type());
                 }
 
                 unsafe_iterator&
