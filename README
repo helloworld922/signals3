@@ -66,7 +66,8 @@ Notable missing features:
 
 - disconnect specific slot by passing a function/slot object.
 - grouped slots.
-- no scoped connection or blocked connection (underlying details are implemented, just public handlers aren't available).
+- no blocked connection (underlying details are implemented, just public handlers aren't available).
+- connection/scoped_connection basically work, but may not have all the implementation details/work exactly like they do in Boost Signals2
 - possibly other features
 
 All handles reside in the boost::signals3 namespace.
