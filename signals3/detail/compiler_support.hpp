@@ -41,6 +41,7 @@ namespace boost
             // shared_ptr and atomic shared_ptr
             using ::boost::shared_ptr;
             using ::boost::weak_ptr;
+            using ::boost::static_pointer_cast;
             using ::boost::make_shared;
             using ::boost::atomic_compare_exchange;
             using ::boost::atomic_load;

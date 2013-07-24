@@ -13,6 +13,8 @@
 #ifndef BOOST_SIGNALS3_SLOTS_HPP
 #define BOOST_SIGNALS3_SLOTS_HPP
 
+#include "detail/compiler_support.hpp"
+
 namespace boost
 {
     namespace signals3

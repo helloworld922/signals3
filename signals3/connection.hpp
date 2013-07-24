@@ -13,16 +13,14 @@
 #ifndef BOOST_SIGNALS3_CONNECTION_HPP
 #define BOOST_SIGNALS3_CONNECTION_HPP
 
+#include "detail/compiler_support.hpp"
+//#include "detail/node_base.hpp"
+#include "detail/signal_base.hpp"
+
 namespace boost
 {
     namespace signals3
     {
-        namespace detail
-        {
-            class signal_base;
-            class node_base;
-        }
-
         class connection
         {
             // maintains no ownership over _sig
@@ -49,6 +47,76 @@ namespace boost
             virtual
             ~connection(void)
             {
+            }
+
+            bool
+            blocked(void) const
+            {
+                ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
+                        _node.lock();
+                if (temp != nullptr)
+                {
+                    return temp->blocked();
+                }
+                return false;
+            }
+
+            bool
+            block(void) const
+            {
+                ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
+                        _node.lock();
+                if (temp != nullptr)
+                {
+                    return temp->block();
+                }
+                return false;
+            }
+            bool
+            unblock(void) const
+            {
+                ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
+                        _node.lock();
+                if (temp != nullptr)
+                {
+                    return temp->unblock();
+                }
+                return false;
+            }
+
+            void
+            disconnect(void)
+            {
+                ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
+                        _node.lock();
+                if (temp != nullptr)
+                {
+                    _sig->disconnect(boost::move(temp));
+                }
+            }
+
+            bool
+            connected(void) const
+            {
+                ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
+                        _node.lock();
+                if (temp != nullptr)
+                {
+                    return temp->connected();
+                }
+                return false;
+            }
+
+            bool
+            usable(void) const
+            {
+                ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
+                        _node.lock();
+                if (temp != nullptr)
+                {
+                    return temp->usable();
+                }
+                return false;
             }
         };
     }

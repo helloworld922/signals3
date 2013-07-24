@@ -13,51 +13,42 @@
 #ifndef BOOST_SIGNALS3_SIGNAL_HPP
 #define BOOST_SIGNALS3_SIGNAL_HPP
 
+//#include "detail/compiler_support.hpp"
+#include "detail/extended_signature.hpp"
+//#include "detail/node_base.hpp"
+//#include "detail/signal_base.hpp"
+#include "slots.hpp"
+#include "connection.hpp"
+#include "optional_last_value.hpp"
+
 namespace boost
 {
     namespace signals3
     {
         template<typename Signature, typename Combiner = optional_last_value<
-                typename std::function< Signature >::result_type >, typename Group = int,
-                typename GroupCompare = std::less< Group >, typename FunctionType = std::function<
-                        Signature >,
+                typename ::boost::signals3::detail::function< Signature >::result_type >,
+                typename Group = int, typename GroupCompare = std::less< Group >,
+                typename FunctionType = ::boost::signals3::detail::function< Signature >,
                 typename ExtendedFunctionType = typename ::boost::signals3::detail::extended_signature<
-                        Signature >::type>
+                        Signature >::type, typename Mutex = ::boost::signals3::detail::mutex>
             class signal;
 
         namespace detail
         {
-            class signal_base
-            {
-            public:
-                virtual
-                ~signal_base(void)
-                {
-                }
-            };
+            class signal_base;
 
-            class node_base
-            {
-                template<typename Signature, typename Combiner, typename Group,
-                        typename GroupCompare, typename FunctionType>
-                    friend class ::boost::signals3::signal;
-
-            public:
-                virtual
-                ~node_base(void)
-                {
-                }
-            };
+            class node_base;
         }
 
         template<typename ResultType, typename ... Args, typename Combiner, typename Group,
-                typename GroupCompare, typename FunctionType, typename ExtendedFunctionType>
+                typename GroupCompare, typename FunctionType, typename ExtendedFunctionType,
+                typename Mutex>
             class signal< ResultType
-            (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType > : public ::boost::signals3::detail::signal_base
+            (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType, Mutex > : public ::boost::signals3::detail::signal_base
             {
             public:
                 // typedefs
-                typedef boost::signals3::detail::mutex mutex_type;
+                typedef Mutex mutex_type;
                 typedef boost::signals3::detail::unique_lock< mutex_type > unique_lock_type;
                 typedef ResultType result_type;
                 typedef Combiner combiner_type;
@@ -67,7 +58,7 @@ namespace boost
                 (Args...), FunctionType > slot_type;
                 typedef boost::signals3::slot< ResultType
                 (const connection&, Args...), ExtendedFunctionType > extended_slot_type;
-                typedef std::atomic< int > atomic_int_type;
+                typedef ::boost::signals3::detail::atomic< int > atomic_int_type;
             private:
                 // used for unpacking tuple to function call
                 template<int...>
@@ -86,84 +77,11 @@ namespace boost
                 {
                     ::boost::signals3::detail::shared_ptr< t_node_base > next;
                     ::boost::signals3::detail::weak_ptr< t_node_base > prev;
-                    mutable ::boost::signals3::detail::atomic< int > _unusable;
-
-                    static const int _disconnected = INT_MIN;
-
-                    /**
-                     * @return true if was not previously marked disconnectd
-                     */
-                    bool mark_disconnected(void) const
-                    {
-                        return _unusable.exchange(_disconnected) != _disconnected;
-                    }
-
-                    bool block(void) const
-                    {
-                        while(true)
-                        {
-                            int snapshot = _unusable.load();
-                            if(snapshot == _disconnected)
-                            {
-                                return false;
-                            }
-                            else
-                            {
-                                int old = snapshot;
-                                ++snapshot;
-                                if(_unusable.compare_exchange_weak(old, snapshot))
-                                {
-                                    return true;
-                                }
-                            }
-                        }
-                        return false;
-                    }
-
-                    bool unblock(void) const
-                    {
-                        while(true)
-                        {
-                            int snapshot = _unusable.load();
-                            if(snapshot == _disconnected)
-                            {
-                                return false;
-                            }
-                            else
-                            {
-                                int old = snapshot;
-                                --snapshot;
-                                if(_unusable.compare_exchange_weak(old, snapshot))
-                                {
-                                    return true;
-                                }
-                            }
-                        }
-                        return false;
-                    }
 
                     virtual bool
                     try_lock(
                             ::boost::signals3::detail::forward_list<
                             ::boost::signals3::detail::shared_ptr< void > >& list) const = 0;
-
-                    bool blocked(void) const
-                    {
-                        return _unusable.load() > 0;
-                    }
-
-                    bool connected(void) const
-                    {
-                        return _unusable.load() != _disconnected;
-                    }
-
-                    bool
-                    usable(void) const
-                    {
-                        int val = _unusable.load();
-                        return val != _disconnected && val <= 0;
-                        //return _unusable.load() == 0;
-                    }
 
                     virtual ResultType
                     operator()(boost::signals3::detail::tuple< Args... > params) const = 0;
@@ -422,6 +340,12 @@ namespace boost
                             node->next->prev = boost::move(prev);
                         }
                     }
+                }
+
+                virtual void disconnect(::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base >&& n) override
+                {
+                    ::boost::signals3::detail::shared_ptr<t_node_base> node = ::boost::signals3::detail::static_pointer_cast<t_node_base>(boost::move(n));
+                    disconnect(node);
                 }
 
                 void disconnect_unsafe(::boost::signals3::detail::shared_ptr< t_node_base >& node)
@@ -739,9 +663,10 @@ namespace boost
             };
 
         template<typename ResultType, typename ... Args, typename Combiner, typename Group,
-                typename GroupCompare, typename FunctionType, typename ExtendedFunctionType>
+                typename GroupCompare, typename FunctionType, typename ExtendedFunctionType,
+                typename Mutex>
             class signal< ResultType
-            (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >::iterator
+            (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType, Mutex >::iterator
             {
                 ::boost::signals3::detail::shared_ptr< t_node_base > curr;
                 ::boost::signals3::detail::tuple< Args... >& params;
@@ -813,9 +738,10 @@ namespace boost
             };
 
         template<typename ResultType, typename ... Args, typename Combiner, typename Group,
-                typename GroupCompare, typename FunctionType, typename ExtendedFunctionType>
+                typename GroupCompare, typename FunctionType, typename ExtendedFunctionType,
+                typename Mutex>
             class signal< ResultType
-            (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >::unsafe_iterator
+            (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType, Mutex >::unsafe_iterator
             {
                 ::boost::signals3::detail::shared_ptr< t_node_base > curr;
                 ::boost::signals3::detail::tuple< Args... >& params;
@@ -830,7 +756,7 @@ namespace boost
                         ::boost::signals3::detail::forward_list<
                                 ::boost::signals3::detail::shared_ptr< void > >& tracking,
                         signal< ResultType
-                        (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >& sig) :
+                        (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >&sig) :
                         curr(boost::move(start_node)), params(params), tracking(tracking), sig(sig)
                 {
 

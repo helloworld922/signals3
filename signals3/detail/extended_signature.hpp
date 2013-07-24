@@ -15,11 +15,13 @@
 #ifndef BOOST_SIGNALS3_EXTENDED_SIGNATURE_HPP
 #define BOOST_SIGNALS3_EXTENDED_SIGNATURE_HPP
 
+#include "compiler_support.hpp"
+
 namespace boost
 {
     namespace signals3
     {
-        //class connection;
+        class connection;
 
         namespace detail
         {
