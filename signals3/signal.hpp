@@ -1,5 +1,5 @@
 //
-// slots.hpp
+// signals.hpp
 //
 // (c) 2013 helloworld922
 //
@@ -426,7 +426,6 @@ namespace boost
 
                 void disconnect_unsafe(::boost::signals3::detail::shared_ptr< t_node_base >& node)
                 {
-                    // TODO
                     if(node->mark_disconnected())
                     {
                         if(node == head)
@@ -890,4 +889,4 @@ namespace boost
     }
 }
 
-#endif /* SIGNAL_HPP_ */
+#endif // BOOST_SIGNALS3_SIGNAL_HPP

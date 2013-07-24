@@ -22,40 +22,41 @@ namespace boost
     namespace signals3
     {
         template<typename ResultType>
-        struct optional_last_value
-        {
-            typedef boost::optional<ResultType> result_type;
-
-            template<typename Iter>
-            result_type operator()(Iter begin, Iter end)
+            struct optional_last_value
             {
-                result_type result;
-                while(begin != end)
-                {
-                    result = *begin;
-                    ++begin;
-                }
-                return result;
-            }
-        };
+                typedef boost::optional< ResultType > result_type;
+
+                template<typename Iter>
+                    result_type
+                    operator()(Iter begin, Iter end)
+                    {
+                        result_type result;
+                        while (begin != end)
+                        {
+                            result = *begin;
+                            ++begin;
+                        }
+                        return result;
+                    }
+            };
 
         template<>
-        struct optional_last_value<void>
-        {
-            typedef void result_type;
-
-            template<typename Iter>
-            void operator()(Iter begin, Iter end) const
+            struct optional_last_value< void >
             {
-                while(begin != end)
-                {
-                    *begin;
-                    ++begin;
-                }
-            }
-        };
+                typedef void result_type;
+
+                template<typename Iter>
+                    void
+                    operator()(Iter begin, Iter end) const
+                    {
+                        while (begin != end)
+                        {
+                            *begin;
+                            ++begin;
+                        }
+                    }
+            };
     }
 }
 
-
-#endif /* OPTIONAL_LAST_VALUE_HPP_ */
+#endif // BOOST_SIGNALS3_OPTIONAL_LAST_VALUE_HPP

@@ -10,8 +10,8 @@
 //  accompanying file LICENSE_1_0.txt or copy at
 //  http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef CONNECTION_HPP_
-#define CONNECTION_HPP_
+#ifndef BOOST_SIGNALS3_CONNECTION_HPP
+#define BOOST_SIGNALS3_CONNECTION_HPP
 
 namespace boost
 {
@@ -54,4 +54,4 @@ namespace boost
     }
 }
 
-#endif /* CONNECTION_HPP_ */
+#endif // BOOST_SIGNALS3_CONNECTION_HPP
