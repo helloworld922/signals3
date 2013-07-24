@@ -10,9 +10,9 @@
 #ifndef BOOST_SIGNALS3_HPP
 #define BOOST_SIGNALS3_HPP
 
-//#include "optional_last_value.hpp"
-//#include "slots.hpp"
-//#include "connection.hpp"
-#include "signal.hpp"
+//#include <boost/signals3/optional_last_value.hpp>
+//#include <boost/signals3/slots.hpp>
+//#include <boost/signals3/connection.hpp>
+#include <boost/signals3/signal.hpp>
 
 #endif // BOOST_SIGNALS3_HPP

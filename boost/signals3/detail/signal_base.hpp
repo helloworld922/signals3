@@ -10,8 +10,8 @@
 #ifndef BOOST_SIGNALS3_SIGNAL_BASE_HPP
 #define BOOST_SIGNALS3_SIGNAL_BASE_HPP
 
-#include "compiler_support.hpp"
-#include "node_base.hpp"
+#include <boost/signals3/detail/compiler_support.hpp>
+#include <boost/signals3/detail/node_base.hpp>
 
 namespace boost
 {

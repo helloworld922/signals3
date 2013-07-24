@@ -17,7 +17,7 @@
 #include <functional>
 #endif
 #ifdef SIG3_TEST
-#include "signals3/signals3.hpp"
+#include <boost/signals3/signals3.hpp>
 #endif
 #ifdef SIG2_TEST
 #include <boost/signals2.hpp>

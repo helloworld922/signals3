@@ -10,13 +10,13 @@
 #ifndef BOOST_SIGNALS3_SIGNAL_HPP
 #define BOOST_SIGNALS3_SIGNAL_HPP
 
-//#include "detail/compiler_support.hpp"
-#include "detail/extended_signature.hpp"
-//#include "detail/node_base.hpp"
-//#include "detail/signal_base.hpp"
-#include "slots.hpp"
-#include "connection.hpp"
-#include "optional_last_value.hpp"
+//#include <boost/signals3/detail/compiler_support.hpp>
+#include <boost/signals3/detail/extended_signature.hpp>
+//#include <boost/signals3/detail/node_base.hpp>
+//#include <boost/signals3/detail/signal_base.hpp>
+#include <boost/signals3/slots.hpp>
+#include <boost/signals3/connection.hpp>
+#include <boost/signals3/optional_last_value.hpp>
 
 namespace boost
 {

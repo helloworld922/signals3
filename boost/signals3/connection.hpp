@@ -10,9 +10,9 @@
 #ifndef BOOST_SIGNALS3_CONNECTION_HPP
 #define BOOST_SIGNALS3_CONNECTION_HPP
 
-#include "detail/compiler_support.hpp"
-//#include "detail/node_base.hpp"
-#include "detail/signal_base.hpp"
+#include <boost/signals3/detail/compiler_support.hpp>
+//#include <boost/signals3/detail/node_base.hpp>
+#include <boost/signals3/detail/signal_base.hpp>
 
 namespace boost
 {
@@ -145,6 +145,15 @@ namespace boost
                     connection(boost::move(conn))
             {
 
+            }
+
+            scoped_connection&
+            operator=(const connection& conn)
+            {
+                disconnect();
+                _sig = conn._sig;
+                _node = conn._node;
+                return *this;
             }
 
             /**
