@@ -71,6 +71,11 @@ namespace boost
                     typedef seq<S...> type;
                 };
 
+                struct t_node_base;
+
+                // private typedefs
+                typedef std::multimap<group_type, ::boost::signals3::detail::weak_ptr<t_node_base>, group_compare_type > group_storage_type;
+
                 struct t_node_base : public ::boost::signals3::detail::node_base
                 {
                     ::boost::signals3::detail::shared_ptr< t_node_base > next;
@@ -80,6 +85,11 @@ namespace boost
                     try_lock(
                             ::boost::signals3::detail::forward_list<
                             ::boost::signals3::detail::shared_ptr< void > >& list) const = 0;
+
+                    virtual typename group_storage_type::iterator* const pos(void)
+                    {
+                        return nullptr;
+                    }
 
                     virtual bool
                     grouped(void) const
@@ -161,8 +171,6 @@ namespace boost
                     }
                 };
 
-                typedef std::multimap<group_type, ::boost::signals3::detail::weak_ptr<t_node_base>, group_compare_type > group_storage_type;
-
                 template<typename B>
                 struct grouped_node : public B
                 {
@@ -186,6 +194,11 @@ namespace boost
 
                     grouped_node(grouped_node&& rhs) : B(boost::move(rhs)), iter(boost::move(rhs.iter))
                     {
+                    }
+
+                    typename group_storage_type::iterator * const pos(void)
+                    {
+                        return &iter;
                     }
 
                     bool grouped(void) const
@@ -296,10 +309,15 @@ namespace boost
                  */
                 void pop_back_impl(void)
                 {
-                    // TODO: handle group slots
                     if (tail != nullptr)
                     {
                         // actually have a node to remove
+                        tail->mark_disconnected();
+                        if(tail->grouped())
+                        {
+                            // handle group slots
+                            group_storage.erase(*(tail->pos()));
+                        }
                         ::boost::signals3::detail::shared_ptr< t_node_base > prev = tail->prev.lock();
                         if (prev != nullptr)
                         {
@@ -323,13 +341,20 @@ namespace boost
                     }
                 }
 
+                /**
+                 * Assumes caller already has a unique lock
+                 */
                 void pop_front_impl(void)
                 {
-                    // TODO: handle grouped slots
-                    // assumes caller already has a unique lock
                     if (head != nullptr)
                     {
                         // actually have a node to remove
+                        head->mark_disconnected();
+                        if(head->grouped())
+                        {
+                            // handle group slots
+                            group_storage.erase(*(head->pos()));
+                        }
                         if (head == tail)
                         {
                             // only have one node
@@ -747,10 +772,15 @@ namespace boost
                 void
                 pop_back_unsafe(void)
                 {
-                    // TODO: handle grouped slots
                     if (tail != nullptr)
                     {
                         // actually have a node to remove
+                        tail->mark_disconnected();
+                        if(tail->grouped())
+                        {
+                            // handle group slots
+                            group_storage.erase(*(tail->pos()));
+                        }
                         ::boost::signals3::detail::shared_ptr< t_node_base > prev = tail->prev.lock();
                         if (prev != nullptr)
                         {
@@ -777,10 +807,15 @@ namespace boost
                 void
                 pop_front_unsafe(void)
                 {
-                    // TODO: handle grouped slots
                     if (head != nullptr)
                     {
                         // actually have a node to remove
+                        head->mark_disconnected();
+                        if(head->grouped())
+                        {
+                            // handle group slots
+                            group_storage.erase(*(head->pos()));
+                        }
                         if (head == tail)
                         {
                             // only have one node

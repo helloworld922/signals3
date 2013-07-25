@@ -183,6 +183,11 @@ main(void)
     mysig.insert_unsafe(1, &test_handler< 1 >);
     mysig.insert(-1, &test_handler< -1 >);
     mysig.emit();
+    mysig.pop_front();
+    mysig.pop_back();
+    mysig.pop_front_unsafe();
+    mysig.pop_back_unsafe();
+    mysig.emit();
 
 //    boost::signals3::test::connection::compile_test();
 //    boost::signals3::test::slots::compile_test();
