@@ -81,6 +81,12 @@ namespace boost
                             ::boost::signals3::detail::forward_list<
                             ::boost::signals3::detail::shared_ptr< void > >& list) const = 0;
 
+                    virtual bool
+                    grouped(void) const
+                    {
+                        return false;
+                    }
+
                     virtual ResultType
                     operator()(boost::signals3::detail::tuple< Args... > params) const = 0;
                 };
@@ -155,7 +161,7 @@ namespace boost
                     }
                 };
 
-                typedef std::multimap<group_type, ::boost::signals3::detail::weak_ptr<t_node_base> > group_storage_type;
+                typedef std::multimap<group_type, ::boost::signals3::detail::weak_ptr<t_node_base>, group_compare_type > group_storage_type;
 
                 template<typename B>
                 struct grouped_node : public B
@@ -180,6 +186,11 @@ namespace boost
 
                     grouped_node(grouped_node&& rhs) : B(boost::move(rhs)), iter(boost::move(rhs.iter))
                     {
+                    }
+
+                    bool grouped(void) const
+                    {
+                        return true;
                     }
                 };
 
@@ -280,10 +291,12 @@ namespace boost
                     head = boost::move(node);
                 }
 
+                /**
+                 * Assumes caller already has a unique lock
+                 */
                 void pop_back_impl(void)
                 {
                     // TODO: handle group slots
-                    // assumes caller already has a unique lock
                     if (tail != nullptr)
                     {
                         // actually have a node to remove
