@@ -24,6 +24,7 @@
 #endif
 
 #include "test/connection_test.hpp"
+#include "test/slots_test.hpp"
 
 //#include "signals3/signals3.hpp"
 #include <iostream>
@@ -177,7 +178,8 @@ test_conn(const boost::signals3::connection& conn)
 int
 main(void)
 {
-    boost::signals3::test::compile_test();
+    boost::signals3::test::connection::compile_test();
+    boost::signals3::test::slots::compile_test();
 //    for (size_t i = 0; i < 8; ++i)
 //    {
 //        std::cout << "i = " << i << std::endl;

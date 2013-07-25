@@ -1,5 +1,5 @@
 //
-// connection_test.hpp
+// slots_test.hpp
 //
 // (c) 2013 helloworld922
 //
@@ -7,10 +7,10 @@
 //  accompanying file LICENSE_1_0.txt or copy at
 //  http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef BOOST_SIGNALS3_CONNECTION_TEST_HPP
-#define BOOST_SIGNALS3_CONNECTION_TEST_HPP
+#ifndef BOOST_SIGNALS3_SLOTS_TEST_HPP
+#define BOOST_SIGNALS3_SLOTS_TEST_HPP
 
-#include <boost/signals3/connection.hpp>
+#include <boost/signals3/slots.hpp>
 
 namespace boost
 {
@@ -18,13 +18,12 @@ namespace boost
     {
         namespace test
         {
-            namespace connection
+            namespace slots
             {
-                extern void
-                compile_test(void);
+                extern void compile_test(void);
             }
         }
     }
 }
 
-#endif // BOOST_SIGNALS3_CONNECTION_TEST_HPP
+#endif // BOOST_SIGNALS3_SLOTS_TEST_HPP
