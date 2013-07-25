@@ -376,7 +376,6 @@ namespace boost
 
                 void disconnect(::boost::signals3::detail::shared_ptr< t_node_base >& node)
                 {
-                    // TODO: handle grouped nodes
                     unique_lock_type _lock(_mutex);
                     if(node->mark_disconnected())
                     {
@@ -390,7 +389,14 @@ namespace boost
                         }
                         else
                         {
+                            if(node->grouped())
+                            {
+                                // handle group slots
+                                group_storage.erase(*(node->pos()));
+                            }
+
                             ::boost::signals3::detail::shared_ptr< t_node_base > prev = node->prev.lock();
+
                             if(node == group_head)
                             {
                                 group_head = prev;
@@ -415,7 +421,6 @@ namespace boost
 
                 void disconnect_unsafe(::boost::signals3::detail::shared_ptr< t_node_base >& node)
                 {
-                    // TODO: handle grouped nodes
                     if(node->mark_disconnected())
                     {
                         if(node == head)
@@ -428,6 +433,12 @@ namespace boost
                         }
                         else
                         {
+                            if(node->grouped())
+                            {
+                                // handle group slots
+                                group_storage.erase(*(node->pos()));
+                            }
+
                             ::boost::signals3::detail::shared_ptr< t_node_base > prev = node->prev.lock();
                             if(node == group_head)
                             {
