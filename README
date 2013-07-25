@@ -57,16 +57,23 @@ For the most part including signals3/signals3.hpp will work. There are some slig
 
 - signal.operator() is now signal.emit
 - signal.connect has been split into signal.push_front/signal.push_back
+- connecting grouped slots is done using signal.insert and associated variants
 - you can disconnect the first/last slot using signal.pop_front/signal.pop_back
 - There are explicit thread unsafe handles of various functions. These have the same name as the thread-safe version, with an _unsafe at the end. For example: signal.emit_unsafe
 
 keep in mind many features aren't quite implemented yet, and there may be many bugs. In other words, it's safe for testing and playing around with, but in general not ready for use.
 
+-----------------------------------
+Rational for interface name changes
+-----------------------------------
+Connect/disconnect names were changed to more closely reflect the terminology used by Standard Library containers.
+Emit operation was changed from operator() to emit so that signals could be emitted unsafely using emit() or emit_unsafe.
+
 Notable missing features:
 
 - disconnect specific slot by passing a function/slot object.
-- grouped slots.
-- no blocked connection (underlying details are implemented, just public handlers aren't available).
+- grouped slots (can insert, but currently no implementations for correctly removing these slots).
+- no shared connection block (underlying details are implemented, just public handlers aren't available). It's possible to block/unblock any connection, though this might be changed in the future (I actually think this isn't possible in Signals2).
 - connection/scoped_connection basically work, but may not have all the implementation details/work exactly like they do in Boost Signals2
 - possibly other features
 

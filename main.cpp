@@ -23,10 +23,9 @@
 #include <boost/signals2.hpp>
 #endif
 
+#include <boost/signals3/signals3.hpp>
 #include "test/connection_test.hpp"
 #include "test/slots_test.hpp"
-
-#include <boost/signals3/signals3.hpp>
 #include <iostream>
 #include <chrono>
 //#include <boost/signals2.hpp>
@@ -114,8 +113,8 @@ timing_test(const size_t num_slots)
         end = clock.now();
 
         std::cout << "signals3: "
-                << std::chrono::duration_cast< std::chrono::nanoseconds >(end - start).count()
-                        / (double) (count) << "ns" << std::endl;
+        << std::chrono::duration_cast< std::chrono::nanoseconds >(end - start).count()
+        / (double) (count) << "ns" << std::endl;
 #endif
 #ifdef SIG2_TEST
         start = clock.now();
@@ -178,10 +177,11 @@ test_conn(const boost::signals3::connection& conn)
 int
 main(void)
 {
-    boost::signals3::signal<void(void)> mysig;
-    mysig.insert(0, &test_handler<0>);
-    mysig.insert_unsafe(1, &test_handler<1>);
-    mysig.insert(-1, &test_handler<-1>);
+    boost::signals3::signal< void
+    (void) > mysig;
+    mysig.insert(0, &test_handler< 0 >);
+    mysig.insert_unsafe(1, &test_handler< 1 >);
+    mysig.insert(-1, &test_handler< -1 >);
     mysig.emit();
 
 //    boost::signals3::test::connection::compile_test();

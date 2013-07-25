@@ -200,8 +200,6 @@ namespace boost
 
                 Combiner combiner;
 
-                GroupCompare group_compare;
-
                 void
                 push_back_impl(::boost::signals3::detail::shared_ptr< t_node_base >&& node)
                 {
@@ -284,6 +282,7 @@ namespace boost
 
                 void pop_back_impl(void)
                 {
+                    // TODO: handle group slots
                     // assumes caller already has a unique lock
                     if (tail != nullptr)
                     {
@@ -313,6 +312,7 @@ namespace boost
 
                 void pop_front_impl(void)
                 {
+                    // TODO: handle grouped slots
                     // assumes caller already has a unique lock
                     if (head != nullptr)
                     {
@@ -338,6 +338,7 @@ namespace boost
 
                 void disconnect(::boost::signals3::detail::shared_ptr< t_node_base >& node)
                 {
+                    // TODO: handle grouped nodes
                     unique_lock_type _lock(_mutex);
                     if(node->mark_disconnected())
                     {
@@ -376,6 +377,7 @@ namespace boost
 
                 void disconnect_unsafe(::boost::signals3::detail::shared_ptr< t_node_base >& node)
                 {
+                    // TODO: handle grouped nodes
                     if(node->mark_disconnected())
                     {
                         if(node == head)
@@ -495,7 +497,7 @@ namespace boost
                 }
 
             public:
-                signal(void) : head(), tail(), group_head(), _mutex(), combiner(), group_compare()
+                signal(void) : head(), tail(), group_head(), _mutex(), combiner()
                 {
                 }
 
@@ -732,6 +734,7 @@ namespace boost
                 void
                 pop_back_unsafe(void)
                 {
+                    // TODO: handle grouped slots
                     if (tail != nullptr)
                     {
                         // actually have a node to remove
@@ -761,6 +764,7 @@ namespace boost
                 void
                 pop_front_unsafe(void)
                 {
+                    // TODO: handle grouped slots
                     if (head != nullptr)
                     {
                         // actually have a node to remove
@@ -797,6 +801,7 @@ namespace boost
                         tail.reset();
                         group_head.reset();
                         ::boost::signals3::detail::atomic_store(&head, tail);
+                        group_storage.clear();
                     }
                 }
 
@@ -813,6 +818,7 @@ namespace boost
                         tail.reset();
                         group_head.reset();
                         head.reset();
+                        group_storage.clear();
                     }
                 }
 
