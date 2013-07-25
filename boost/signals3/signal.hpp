@@ -155,7 +155,7 @@ namespace boost
                     }
                 };
 
-                typedef std::multimap<group_type, t_node_base*> group_storage_type;
+                typedef std::multimap<group_type, ::boost::signals3::detail::weak_ptr<t_node_base> > group_storage_type;
 
                 template<typename B>
                 struct grouped_node : public B
@@ -400,18 +400,98 @@ namespace boost
                 }
 
                 template<typename B>
-                void inser_impl(const group_type& group, ::boost::signals3::detail::shared_ptr< grouped_node<B> >&& n)
+                void insert_impl(const group_type& group, ::boost::signals3::detail::shared_ptr< grouped_node<B> >&& n)
                 {
-                    std::pair<group_type, t_node_base*> val(group, n.get());
+                    typename group_storage_type::value_type val(group, n);
                     unique_lock_type _lock(_mutex);
-                    // TODO: insert_impl
+                    typename group_storage_type::iterator iter = group_storage.insert(boost::move(val));
+                    n->iter = iter;
+                    if(iter != group_storage.begin())
+                    {
+                        // n is not going to be the new group_head
+                        typename group_storage_type::iterator prev_iter = iter;
+                        --prev_iter;
+                        ::boost::signals3::detail::shared_ptr<t_node_base> prev = prev_iter->second.lock();
+                        n->prev = prev_iter->second;
+                        n->next = prev->next;
+                        if(prev->next == nullptr)
+                        {
+                            // push_back case, update tail
+                            tail = n;
+                        }
+                        ::boost::signals3::detail::atomic_store(&(prev->next), ::boost::signals3::detail::static_pointer_cast<t_node_base>(boost::move(n)));
+                    }
+                    else
+                    {
+                        // n is first grouped node, hook to group_head
+                        if(group_head != nullptr)
+                        {
+                            n->prev = group_head;
+                            n->next = group_head->next;
+                            ::boost::signals3::detail::atomic_store(&(group_head->next), ::boost::signals3::detail::static_pointer_cast<t_node_base>(boost::move(n)));
+                        }
+                        else
+                        {
+                            // push_front case, update head
+                            if(head != nullptr)
+                            {
+                                n->next = head;
+                            }
+                            else
+                            {
+                                // only node
+                                tail = n;
+                            }
+                            ::boost::signals3::detail::atomic_store(&head, ::boost::signals3::detail::static_pointer_cast<t_node_base>(boost::move(n)));
+                        }
+                    }
                 }
 
                 template<typename B>
-                void inser_impl_unsafe(const group_type& group, ::boost::signals3::detail::shared_ptr< grouped_node<B> >&& n)
+                void insert_impl_unsafe(const group_type& group, ::boost::signals3::detail::shared_ptr< grouped_node<B> >&& n)
                 {
-                    std::pair<group_type, t_node_base*> val(group, n.get());
-                    // TODO: insert_impl_unsafe
+                    typename group_storage_type::value_type val(group, n);
+                    typename group_storage_type::iterator iter = group_storage.insert(boost::move(val));
+                    n->iter = iter;
+                    if(iter != group_storage.begin())
+                    {
+                        // n is not going to be the new group_head
+                        typename group_storage_type::iterator prev_iter = iter;
+                        --prev_iter;
+                        ::boost::signals3::detail::shared_ptr<t_node_base> prev = prev_iter->second.lock();
+                        n->prev = prev_iter->second;
+                        n->next = prev->next;
+                        if(prev->next == nullptr)
+                        {
+                            // push_back case, update tail
+                            tail = n;
+                        }
+                        prev->next = boost::move(n);
+                    }
+                    else
+                    {
+                        // n is first grouped node, hook to group_head
+                        if(group_head != nullptr)
+                        {
+                            n->prev = group_head;
+                            n->next = group_head->next;
+                            group_head->next = boost::move(n);
+                        }
+                        else
+                        {
+                            // push_front case, update head
+                            if(head != nullptr)
+                            {
+                                n->next = head;
+                            }
+                            else
+                            {
+                                // only node
+                                tail = n;
+                            }
+                            head = boost::move(n);
+                        }
+                    }
                 }
 
             public:

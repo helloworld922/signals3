@@ -33,7 +33,7 @@
 
 int val[2];
 
-template<size_t N>
+template<int N>
     void
     test_handler(void)
     {
@@ -179,10 +179,13 @@ int
 main(void)
 {
     boost::signals3::signal<void(void)> mysig;
-    mysig.clear();
-    mysig.clear_unsafe();
-    boost::signals3::test::connection::compile_test();
-    boost::signals3::test::slots::compile_test();
+    mysig.insert(0, &test_handler<0>);
+    mysig.insert_unsafe(1, &test_handler<1>);
+    mysig.insert(-1, &test_handler<-1>);
+    mysig.emit();
+
+//    boost::signals3::test::connection::compile_test();
+//    boost::signals3::test::slots::compile_test();
 //    for (size_t i = 0; i < 8; ++i)
 //    {
 //        std::cout << "i = " << i << std::endl;
