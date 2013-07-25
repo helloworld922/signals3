@@ -17,6 +17,7 @@
 #include <boost/signals3/slots.hpp>
 #include <boost/signals3/connection.hpp>
 #include <boost/signals3/optional_last_value.hpp>
+#include <map>
 
 namespace boost
 {
@@ -118,10 +119,6 @@ namespace boost
                     }
                 };
 
-                struct grouped_node : public node
-                {
-                };
-
                 struct extended_node : public t_node_base
                 {
                     extended_slot_type callback;
@@ -158,8 +155,32 @@ namespace boost
                     }
                 };
 
-                struct extended_grouped_node : public extended_node
+                typedef std::multimap<group_type, t_node_base*> group_storage_type;
+
+                template<typename B>
+                struct grouped_node : public B
                 {
+                    typename group_storage_type::iterator iter;
+
+                    template<typename SlotType>
+                    grouped_node(const SlotType& callback) : B(callback)
+                    {}
+
+                    template<typename SlotType>
+                    grouped_node(SlotType&& callback) : B(std::forward<SlotType>(callback))
+                    {}
+
+                    grouped_node(const grouped_node& rhs) : B(rhs), iter(rhs.iter)
+                    {
+                    }
+
+                    grouped_node(grouped_node& rhs) : B(rhs), iter(rhs.iter)
+                    {
+                    }
+
+                    grouped_node(grouped_node&& rhs) : B(boost::move(rhs)), iter(boost::move(rhs.iter))
+                    {
+                    }
                 };
 
                 class iterator;
@@ -172,6 +193,8 @@ namespace boost
                 ::boost::signals3::detail::shared_ptr< t_node_base > head;
                 ::boost::signals3::detail::shared_ptr< t_node_base > tail;
                 ::boost::signals3::detail::shared_ptr< t_node_base > group_head;
+
+                group_storage_type group_storage;
 
                 mutex_type _mutex;
 
@@ -376,9 +399,88 @@ namespace boost
                     }
                 }
 
+                template<typename B>
+                void inser_impl(const group_type& group, ::boost::signals3::detail::shared_ptr< grouped_node<B> >&& n)
+                {
+                    std::pair<group_type, t_node_base*> val(group, n.get());
+                    unique_lock_type _lock(_mutex);
+                    // TODO: insert_impl
+                }
+
+                template<typename B>
+                void inser_impl_unsafe(const group_type& group, ::boost::signals3::detail::shared_ptr< grouped_node<B> >&& n)
+                {
+                    std::pair<group_type, t_node_base*> val(group, n.get());
+                    // TODO: insert_impl_unsafe
+                }
+
             public:
                 signal(void) : head(), tail(), group_head(), _mutex(), combiner(), group_compare()
                 {
+                }
+
+                connection insert(const group_type& group, const slot_type& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr< grouped_node<node> > n = ::boost::signals3::detail::make_shared< grouped_node<node> >(callback);
+                    connection conn(this, n);
+                    insert_impl(boost::move(n));
+                    return conn;
+                }
+
+                connection insert(const group_type& group, slot_type&& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr< grouped_node<node> > n = ::boost::signals3::detail::make_shared< grouped_node<node> >(boost::move(callback));
+                    connection conn(this, n);
+                    insert_impl(group, boost::move(n));
+                    return conn;
+                }
+
+                connection insert_unsafe(const group_type& group, const slot_type& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr< grouped_node<node> > n = ::boost::signals3::detail::make_shared< grouped_node<node> >(callback);
+                    connection conn(this, n);
+                    insert_impl_unsafe(group, boost::move(n));
+                    return conn;
+                }
+
+                connection insert_unsafe(const group_type& group, slot_type&& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr< grouped_node<node> > n = ::boost::signals3::detail::make_shared< grouped_node<node> >(boost::move(callback));
+                    connection conn(this, n);
+                    insert_impl_unsafe(group, boost::move(n));
+                    return conn;
+                }
+
+                connection insert_extended(const group_type& group, const extended_slot_type& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr< grouped_node<extended_node> > n = ::boost::signals3::detail::make_shared< grouped_node<extended_node> >(callback);
+                    connection conn(this, n);
+                    insert_impl(group, boost::move(n));
+                    return conn;
+                }
+
+                connection insert_extended(const group_type& group, extended_slot_type&& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr< grouped_node<extended_node> > n = ::boost::signals3::detail::make_shared< grouped_node<extended_node> >(boost::move(callback));
+                    connection conn(this, n);
+                    insert_impl(group, boost::move(n));
+                    return conn;
+                }
+
+                connection insert_extended_unsafe(const group_type& group, const extended_slot_type& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr< grouped_node<extended_node> > n = ::boost::signals3::detail::make_shared< grouped_node<extended_node> >(callback);
+                    connection conn(this, n);
+                    insert_impl_unsafe(group, boost::move(n));
+                    return conn;
+                }
+
+                connection insert_extended_unsafe(const group_type& group, extended_slot_type&& callback)
+                {
+                    ::boost::signals3::detail::shared_ptr< grouped_node<extended_node> > n = ::boost::signals3::detail::make_shared< grouped_node<extended_node> >(boost::move(callback));
+                    connection conn(this, n);
+                    insert_impl_unsafe(group, boost::move(n));
+                    return conn;
                 }
 
                 connection
@@ -599,6 +701,50 @@ namespace boost
                             head = head->next;
                         }
                     }
+                }
+
+                void clear(void)
+                {
+                    unique_lock_type _lock(_mutex);
+                    if(head != nullptr)
+                    {
+                        ::boost::signals3::detail::shared_ptr<t_node_base> iter = head;
+                        while(iter != nullptr)
+                        {
+                            iter->mark_disconnected();
+                            iter = iter->next;
+                        }
+                        tail.reset();
+                        group_head.reset();
+                        ::boost::signals3::detail::atomic_store(&head, tail);
+                    }
+                }
+
+                void clear_unsafe(void)
+                {
+                    if(head != nullptr)
+                    {
+                        ::boost::signals3::detail::shared_ptr<t_node_base> iter = head;
+                        while(iter != nullptr)
+                        {
+                            iter->mark_disconnected();
+                            iter = iter->next;
+                        }
+                        tail.reset();
+                        group_head.reset();
+                        head.reset();
+                    }
+                }
+
+                void erase(const group_type& group)
+                {
+                    // TODO: need to implement grouped slots first
+                    unique_lock_type _lock(_mutex);
+                }
+
+                void erase_unsafe(const group_type& group)
+                {
+                    // TODO: need to implement grouped slots first
                 }
 
                 typename Combiner::result_type

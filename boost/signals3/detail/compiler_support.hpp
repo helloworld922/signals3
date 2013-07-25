@@ -22,9 +22,9 @@
 
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/locks.hpp>
-#include <iterator>
+//#include <iterator>
 #include <functional>
-#include <vector>
+//#include <vector>
 #include <forward_list>
 
 #include <tuple>

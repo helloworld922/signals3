@@ -26,7 +26,7 @@
 #include "test/connection_test.hpp"
 #include "test/slots_test.hpp"
 
-//#include "signals3/signals3.hpp"
+#include <boost/signals3/signals3.hpp>
 #include <iostream>
 #include <chrono>
 //#include <boost/signals2.hpp>
@@ -178,6 +178,9 @@ test_conn(const boost::signals3::connection& conn)
 int
 main(void)
 {
+    boost::signals3::signal<void(void)> mysig;
+    mysig.clear();
+    mysig.clear_unsafe();
     boost::signals3::test::connection::compile_test();
     boost::signals3::test::slots::compile_test();
 //    for (size_t i = 0; i < 8; ++i)

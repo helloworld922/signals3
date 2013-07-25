@@ -20,7 +20,6 @@ Current dependencies:
 - Boost shared_ptr/weak_ptr/make_shared*
 - c++11 Variadic Templates
 - c++11 std::function
-- c++11 auto
 - c++11 move semantics and lvalue refs
 - boost move**
 - c++11 tuple
