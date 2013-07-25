@@ -71,7 +71,8 @@ namespace boost
                 bool
                 expired(void) const
                 {
-                    for (auto iter = _tracking.begin(); iter != _tracking.end(); ++iter)
+                    for (_track_list::const_iterator iter = _tracking.begin();
+                            iter != _tracking.end(); ++iter)
                     {
                         if (iter->expired())
                         {
@@ -89,7 +90,8 @@ namespace boost
                     bool
                     try_lock(ForwardList& list) const
                     {
-                        for (auto i = _tracking.begin(); i != _tracking.end(); ++i)
+                        for (_track_list::const_iterator i = _tracking.begin();
+                                i != _tracking.end(); ++i)
                         {
                             ::boost::signals3::detail::shared_ptr< void > item = i->lock();
                             if (item == nullptr)
@@ -121,24 +123,33 @@ namespace boost
                 typedef SlotFunction function_type;
 
                 template<typename Callback>
+                    slot(Callback&& callback) :
+                            callback(std::forward< Callback >(callback))
+                    {
+                    }
+
+                template<typename Callback>
                     slot(const Callback& callback) :
                             callback(callback)
                     {
                     }
 
-                template<typename Callback>
-                    slot(Callback&& callback) :
-                            callback(boost::move(callback))
-                    {
-                    }
-
-                slot(const slot& rhs) :
+                slot(slot< ResultType
+                (Args...), SlotFunction >& rhs) :
                         slot_base< ResultType
                         (Args...) >(rhs), callback(rhs.callback)
                 {
                 }
 
-                slot(slot&& rhs) :
+                slot(const slot< ResultType
+                (Args...), SlotFunction >& rhs) :
+                        slot_base< ResultType
+                        (Args...) >(rhs), callback(rhs.callback)
+                {
+                }
+
+                slot(slot< ResultType
+                (Args...), SlotFunction > && rhs) :
                         slot_base< ResultType
                         (Args...) >(boost::move(rhs)), callback(boost::move(rhs.callback))
                 {
@@ -164,6 +175,7 @@ namespace boost
                 ResultType
                 operator()(Args ... args)
                 {
+                    // TODO: conform better to Signals2
                     return callback(args...);
                 }
             };
