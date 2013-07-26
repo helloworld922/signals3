@@ -53,21 +53,24 @@ Header file description:
 	boost/signals3/slots.hpp - definition for slot
 	boost/signals3/connection.hpp - connection header file
 
-For the most part including signals3/signals3.hpp will work. There are some slight interface differences:
+For the most part including signals3/signals3.hpp will work. There are many interface naming differences (should function the same, though):
 
 - signal.operator() is now signal.emit
 - signal.connect has been split into signal.push_front/signal.push_back
 - connecting grouped slots is done using signal.insert and associated variants
 - you can disconnect the first/last slot using signal.pop_front/signal.pop_back
+- To disconnect all slots use signal.clear
+- To disconnect a certain group of slots use signal.erase
 - There are explicit thread unsafe handles of various functions. These have the same name as the thread-safe version, with an _unsafe at the end. For example: signal.emit_unsafe
+	Not all functions have an _unsafe version. Also, keep in mind that shared_ptr/weak_ptr may use certain thread-safety features even if they aren't used in a thread-safe manner. 
 
-keep in mind many features aren't quite implemented yet, and there may be many bugs. In other words, it's safe for testing and playing around with, but in general not ready for use.
+For the most part nearly all of the features of Boost Signals2 have been implemented, but I have not done extensive testing yet so there may be many fatal bugs.
 
 -----------------------------------
 Rational for interface name changes
 -----------------------------------
 Connect/disconnect names were changed to more closely reflect the terminology used by Standard Library containers.
-Emit operation was changed from operator() to emit so that signals could be emitted unsafely using emit() or emit_unsafe.
+Emit operation was changed from operator() to emit so that signals could be emitted with thread-safety traits using emit or emit_unsafe.
 
 Notable missing features:
 
@@ -75,21 +78,24 @@ Notable missing features:
 - no shared connection block (underlying details are implemented, just public handlers aren't available). It's possible to block/unblock any connection, though this might be changed in the future (I actually think this isn't possible in Signals2).
 - connection/scoped_connection basically work, but may not have all the implementation details/work exactly like they do in Boost Signals2
 - possibly other features
+- Trackable. This was a backwards-compatibility feature from Signals2 to Signals. I don't plan on implementing this ever (use the tracking scheme of Signals2 instead).
 
 All handles reside in the boost::signals3 namespace.
 
 ====================
 Design Goals
 ====================
-The main design goal is observed by what signals/slots are typically used for:
+My primary motivation for writing this library was looking at how Signals/Slots are typically used.
+Namely:
 
 1. Connecting/disconnecting slots is usually not that time critical.
 2. Most signals either have no slots, or very few slots connected.
 3. Signals may be invoked from multiple threads, and usually can be evaluated asynchronously. It seems like slots usually can be evaluated asynchronously, but they could be strongly ordered, too. In any case, only forward iteration is required for emitting a signal.
-4. Emitting should be as fast as possible.
+4. Emitting usually happens significantly more than modifying a signal, and sometimes in time-critical event loops.
 
-To solve this, the slots are tracked in a doubly-linked list which is always atomically a consistent singly linked list.
-This allows for lock-free signal emit and a single writer (write operations typically must obtain a mutex).
+Based on these requirements I decided the main focus would be on implementing Signals/Slots with a highly optimized emit implementation.
+This was done using a doubly-linked list which is always atomically a consistent singly linked list.
+This allows for lock-free signal emit and a single writer (write operations typically must obtain a unique lock).
 Additionally, handlers have been added which allow for thread-unsafe operations which allow for external synchronization, or no synchronization at all if the signal will not be modified under general use.
 
 The library is fully re-entrant, thread-safe* (with thread-unsafe handlers added), and type-safe.

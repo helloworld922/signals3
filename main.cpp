@@ -7,10 +7,10 @@
 //  accompanying file LICENSE_1_0.txt or copy at
 //  http://www.boost.org/LICENSE_1_0.txt)
 
-//#define USE_TIMINGS
+#define USE_TIMINGS
 
 //#define STD_FUNC_TEST
-//#define SIG3_TEST
+#define SIG3_TEST
 //#define SIG2_TEST
 
 #ifdef STD_FUNC_TEST
@@ -23,7 +23,7 @@
 #include <boost/signals2.hpp>
 #endif
 
-#include <boost/signals3/signals3.hpp>
+//#include <boost/signals3/signals3.hpp>
 #include "test/connection_test.hpp"
 #include "test/slots_test.hpp"
 #include <iostream>
@@ -177,25 +177,25 @@ test_conn(const boost::signals3::connection& conn)
 int
 main(void)
 {
-    boost::signals3::signal< void
-    (void) > mysig;
-    mysig.insert(0, &test_handler< 0 >);
-    mysig.insert_unsafe(1, &test_handler< 1 >);
-    mysig.insert(-1, &test_handler< -1 >);
-    mysig.erase(1);
-    mysig.emit();
-    mysig.pop_front();
-    mysig.pop_back();
-    mysig.pop_front_unsafe();
-    mysig.pop_back_unsafe();
-    mysig.emit();
+//    boost::signals3::signal< void
+//    (void) > mysig;
+//    mysig.insert(0, &test_handler< 0 >);
+//    mysig.insert_unsafe(1, &test_handler< 1 >);
+//    mysig.insert(-1, &test_handler< -1 >);
+//    mysig.erase(1);
+//    mysig.emit();
+//    mysig.pop_front();
+//    mysig.pop_back();
+//    mysig.pop_front_unsafe();
+//    mysig.pop_back_unsafe();
+//    mysig.emit();
 
 //    boost::signals3::test::connection::compile_test();
 //    boost::signals3::test::slots::compile_test();
-//    for (size_t i = 0; i < 8; ++i)
-//    {
-//        std::cout << "i = " << i << std::endl;
-//        timing_test(i);
-//        std::cout << std::endl;
-//    }
+    for (size_t i = 0; i < 8; ++i)
+    {
+        std::cout << "i = " << i << std::endl;
+        timing_test(i);
+        std::cout << std::endl;
+    }
 }
