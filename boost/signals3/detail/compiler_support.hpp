@@ -15,9 +15,9 @@
 #include <boost/move/move.hpp>
 
 // testing defines
-#define BOOST_NO_CXX11_ATOMIC
-#define BOOST_NO_CXX11_HDR_FUNCTIONAL
-#define BOOST_NO_CXX11_HDR_TUPLE
+//#define BOOST_NO_CXX11_ATOMIC
+//#define BOOST_NO_CXX11_HDR_FUNCTIONAL
+//#define BOOST_NO_CXX11_HDR_TUPLE
 
 #if defined(BOOST_NO_CXX11_ATOMIC_SMART_PTR) || defined(BOOST_NO_CXX11_SMART_PTR)
 #include <boost/shared_ptr.hpp>
