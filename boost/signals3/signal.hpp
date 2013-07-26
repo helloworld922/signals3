@@ -123,9 +123,9 @@ namespace boost
                     }
 
                     template<int... S>
-                    inline ResultType call_func(seq<S...>, std::tuple<Args...>& params) const
+                    inline ResultType call_func(seq<S...>, ::boost::signals3::detail::tuple<Args...>& params) const
                     {
-                        return callback.slot_function()(std::forward<Args>(std::get<S>(params))...);
+                        return callback.slot_function()(std::forward<Args>(::boost::signals3::detail::get<S>(params))...);
                     }
 
                     virtual ResultType
@@ -159,9 +159,9 @@ namespace boost
                     }
 
                     template<int... S>
-                    inline ResultType call_func(seq<S...>, std::tuple<Args...>& params) const
+                    inline ResultType call_func(seq<S...>, ::boost::signals3::detail::tuple<Args...>& params) const
                     {
-                        return callback.slot_function()(conn, std::forward<Args>(std::get<S>(params))...);
+                        return callback.slot_function()(conn, std::forward<Args>(::boost::signals3::detail::get<S>(params))...);
                     }
 
                     virtual ResultType

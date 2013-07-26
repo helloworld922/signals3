@@ -15,29 +15,29 @@ Currently implemented towards the C++11 standard, but the goal is to eventually 
 
 Current dependencies:
 
-- Boost Thread (mutex, unique_lock)*
-- Boost Atomic (atomic boost::shared_ptr)*
-- Boost shared_ptr/weak_ptr/make_shared*
 - c++11 Variadic Templates
-- c++11 std::function
 - c++11 move semantics and lvalue refs
-- boost move**
-- c++11 tuple
-- c++11 atomics
+- boost::move*
 - c++11 forward_list
 - c++11 std::forward
 - boost optional
 
+note*: boost::move internally will bind to std::move if compiler support is available.
+
+In addition to these hard requirements, the library will substitute Boost libraries in if the appropriate standard library isn't available.
+
+- boost::mutex			-or-	c++11 std::mutex
+- boost::unique_lock	-or-	c++11 std::unique_lock
+- boost::atomic			-or-	c++11 std::atomic
+- boost::shared_ptr		-or-	c++11 std::shared_ptr**
+- boost::weak_ptr		-or-	c++11 std::weak_ptr**
+- boost::make_shared	-or-	c++11 std::make_shared**
+- boost::function		-or-	c++11 std::function
+- boost::tuple			-or-	c++11 tuple
+
+note**: If there is no c++11 atomic shared_ptr, the library will only use boost::shared_ptr/boost::weak_ptr.
+
 hopefully that's all of them.
-
-*note:
-Certain boost libraries are used because my current development platform doesn't support all c++11 features.
-They are used in a manner which is consistent with the c++11 standard. You can take a look at signals3/detail/compiler_support.hpp and switch out appropriate components.
-
-**note:
-The actual code uses && for lvalue refs, and boost::move which binds to std::move if compiler support is available.
-Eventually I will replace with the appropriate Boost macro to get c++03 support.
-
 
 
 ======================
