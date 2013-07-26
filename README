@@ -35,8 +35,8 @@ Certain boost libraries are used because my current development platform doesn't
 They are used in a manner which is consistent with the c++11 standard. You can take a look at signals3/detail/compiler_support.hpp and switch out appropriate components.
 
 **note:
-The actual code uses && for lvalue refs, and boost::move which binds to std::bind if compiler support is available.
-Eventually I will find/replace with the appropriate Boost macro to get c++03 support.
+The actual code uses && for lvalue refs, and boost::move which binds to std::move if compiler support is available.
+Eventually I will replace with the appropriate Boost macro to get c++03 support.
 
 
 
@@ -72,7 +72,6 @@ Emit operation was changed from operator() to emit so that signals could be emit
 Notable missing features:
 
 - disconnect specific slot by passing a function/slot object.
-- grouped slots (can insert, but currently no implementations for correctly removing these slots).
 - no shared connection block (underlying details are implemented, just public handlers aren't available). It's possible to block/unblock any connection, though this might be changed in the future (I actually think this isn't possible in Signals2).
 - connection/scoped_connection basically work, but may not have all the implementation details/work exactly like they do in Boost Signals2
 - possibly other features
