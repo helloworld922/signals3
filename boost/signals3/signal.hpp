@@ -47,7 +47,7 @@ namespace boost
             public:
                 // typedefs
                 typedef Mutex mutex_type;
-                typedef boost::signals3::detail::unique_lock< mutex_type > unique_lock_type;
+                typedef boost::signals3::detail::lock_guard< mutex_type > lock_guard_type;
                 typedef ResultType result_type;
                 typedef Combiner combiner_type;
                 typedef Group group_type;
@@ -227,7 +227,7 @@ namespace boost
                 void
                 push_back_impl(::boost::signals3::detail::shared_ptr< t_node_base >&& node)
                 {
-                    unique_lock_type _lock(_mutex);
+                    lock_guard_type _lock(_mutex);
                     if (tail == nullptr)
                     {
                         // only one node
@@ -246,7 +246,7 @@ namespace boost
                 void
                 push_front_impl(::boost::signals3::detail::shared_ptr< t_node_base >&& node)
                 {
-                    unique_lock_type _lock(_mutex);
+                    lock_guard_type _lock(_mutex);
                     if (head == nullptr)
                     {
                         // only one node
@@ -376,7 +376,7 @@ namespace boost
 
                 void disconnect(::boost::signals3::detail::shared_ptr< t_node_base >& node)
                 {
-                    unique_lock_type _lock(_mutex);
+                    lock_guard_type _lock(_mutex);
                     if(node->mark_disconnected())
                     {
                         if(node == head)
@@ -454,7 +454,7 @@ namespace boost
                 void insert_impl(const group_type& group, ::boost::signals3::detail::shared_ptr< grouped_node<B> >&& n)
                 {
                     typename group_storage_type::value_type val(group, n);
-                    unique_lock_type _lock(_mutex);
+                    lock_guard_type _lock(_mutex);
                     typename group_storage_type::iterator iter = group_storage.insert(boost::move(val));
                     n->iter = iter;
                     if(iter != group_storage.begin())
@@ -769,14 +769,14 @@ namespace boost
                 void
                 pop_back(void)
                 {
-                    unique_lock_type _lock(_mutex);
+                    lock_guard_type _lock(_mutex);
                     pop_back_impl();
                 }
 
                 void
                 pop_front(void)
                 {
-                    unique_lock_type _lock(_mutex);
+                    lock_guard_type _lock(_mutex);
                     pop_front_impl();
                 }
 
@@ -848,7 +848,7 @@ namespace boost
 
                 void clear(void)
                 {
-                    unique_lock_type _lock(_mutex);
+                    lock_guard_type _lock(_mutex);
                     if(head != nullptr)
                     {
                         ::boost::signals3::detail::shared_ptr<t_node_base> iter = head;
@@ -883,7 +883,7 @@ namespace boost
 
                 void erase(const group_type& group)
                 {
-                    unique_lock_type _lock(_mutex);
+                    lock_guard_type _lock(_mutex);
                     std::pair<typename group_storage_type::iterator, typename group_storage_type::iterator> bounds = group_storage.equal_range(group);
                     if(bounds.first != group_storage.end())
                     {

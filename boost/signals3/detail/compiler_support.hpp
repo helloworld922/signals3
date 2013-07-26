@@ -100,10 +100,10 @@ namespace boost
 #if defined(BOOST_NO_CXX11_HDR_MUTEX)
 
             using ::boost::mutex;
-            using ::boost::unique_lock;
+            using ::boost::lock_guard;
 #else
             using ::std::mutex;
-            using ::std::unique_lock;
+            using ::std::lock_guard;
 #endif
 
             // tuple

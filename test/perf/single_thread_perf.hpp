@@ -10,8 +10,8 @@
 #ifndef SINGLE_THREAD_PERF_HPP_
 #define SINGLE_THREAD_PERF_HPP_
 
-//#define SIGNALS3_ST_PERF_TESTING
-#define SIGNALS2_ST_PERF_TESTING
+#define SIGNALS3_ST_PERF_TESTING
+//#define SIGNALS2_ST_PERF_TESTING
 
 #if defined(SIGNALS3_ST_PERF_TESTING)
 #include <boost/signals3/signals3.hpp>
