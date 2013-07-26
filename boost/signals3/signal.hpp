@@ -883,13 +883,77 @@ namespace boost
 
                 void erase(const group_type& group)
                 {
-                    // TODO: need to implement grouped slots first
                     unique_lock_type _lock(_mutex);
+                    std::pair<typename group_storage_type::iterator, typename group_storage_type::iterator> bounds = group_storage.equal_range(group);
+                    if(bounds.first != group_storage.end())
+                    {
+                        // at least one slot to disconnect
+                        ::boost::signals3::detail::shared_ptr<t_node_base> iter = bounds.first->second.lock();
+                        // assume we're removing all nodes bounds.first to end
+                        ::boost::signals3::detail::shared_ptr<t_node_base> end_pos;
+                        if(bounds.second != group_storage.end())
+                        {
+                            // segment being removed is somewhere in the middle (not removing tail)
+                            end_pos = bounds.second->second.lock();
+                        }
+                        else
+                        {
+                            tail = iter->prev.lock();
+                        }
+                        if(iter == head)
+                        {
+                            // move head to end_pos
+                            ::boost::signals3::detail::atomic_store(&head, end_pos);
+                        }
+                        do
+                        {
+                            iter->mark_disconnected();
+                            ::boost::signals3::detail::shared_ptr<t_node_base> next = iter->next;
+                            ::boost::signals3::detail::atomic_store(&(iter->next), end_pos);
+
+                            iter = boost::move(next);
+                            ++bounds.first;
+                        }
+                        while(bounds.first != bounds.second);
+                        group_storage.erase(group);
+                    }
                 }
 
                 void erase_unsafe(const group_type& group)
                 {
-                    // TODO: need to implement grouped slots first
+                    std::pair<typename group_storage_type::iterator, typename group_storage_type::iterator> bounds = group_storage.equal_range(group);
+                    if(bounds.first != group_storage.end())
+                    {
+                        // at least one slot to disconnect
+                        ::boost::signals3::detail::shared_ptr<t_node_base> iter = bounds.first->second.lock();
+                        // assume we're removing all nodes bounds.first to end
+                        ::boost::signals3::detail::shared_ptr<t_node_base> end_pos;
+                        if(bounds.second != group_storage.end())
+                        {
+                            // segment being removed is somewhere in the middle (not removing tail)
+                            end_pos = bounds.second->second.lock();
+                        }
+                        else
+                        {
+                            tail = iter->prev.lock();
+                        }
+                        if(iter == head)
+                        {
+                            // move head to end_pos
+                            head = end_pos;
+                        }
+                        do
+                        {
+                            iter->mark_disconnected();
+                            ::boost::signals3::detail::shared_ptr<t_node_base> next = iter->next;
+                            iter->next = end_pos;
+
+                            iter = boost::move(next);
+                            ++bounds.first;
+                        }
+                        while(bounds.first != bounds.second);
+                        group_storage.erase(group);
+                    }
                 }
 
                 typename Combiner::result_type

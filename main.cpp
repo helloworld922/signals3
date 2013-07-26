@@ -182,6 +182,7 @@ main(void)
     mysig.insert(0, &test_handler< 0 >);
     mysig.insert_unsafe(1, &test_handler< 1 >);
     mysig.insert(-1, &test_handler< -1 >);
+    mysig.erase(1);
     mysig.emit();
     mysig.pop_front();
     mysig.pop_back();
