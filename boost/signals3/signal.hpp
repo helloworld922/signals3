@@ -554,7 +554,7 @@ namespace boost
                 {
                     ::boost::signals3::detail::shared_ptr< grouped_node<node> > n = ::boost::signals3::detail::make_shared< grouped_node<node> >(callback);
                     connection conn(this, n);
-                    insert_impl(boost::move(n));
+                    insert_impl(group, boost::move(n));
                     return conn;
                 }
 
@@ -994,8 +994,7 @@ namespace boost
                     ::boost::signals3::detail::forward_list
                     < ::boost::signals3::detail::shared_ptr< void > > tracking_list;
                     ::boost::signals3::detail::tuple< Args... > params(std::forward<Args>(args)...);
-                    ::boost::signals3::detail::shared_ptr< t_node_base > begin_ptr =
-                    ::boost::signals3::detail::atomic_load(&head);
+                    ::boost::signals3::detail::shared_ptr< t_node_base > begin_ptr = head;
                     while (begin_ptr != nullptr)
                     {
                         if (!begin_ptr->usable())
@@ -1041,6 +1040,12 @@ namespace boost
                         signal< ResultType
                         (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >& sig) :
                         curr(boost::move(start_node)), params(params), tracking(tracking), sig(sig)
+                {
+                }
+
+                iterator(iterator&& rhs) :
+                        curr(boost::move(rhs.curr)), params(rhs.params), tracking(rhs.tracking), sig(
+                                rhs.sig)
                 {
                 }
 
@@ -1117,7 +1122,12 @@ namespace boost
                         (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >&sig) :
                         curr(boost::move(start_node)), params(params), tracking(tracking), sig(sig)
                 {
+                }
 
+                unsafe_iterator(unsafe_iterator&& rhs) :
+                        curr(boost::move(rhs.curr)), params(rhs.params), tracking(rhs.tracking), sig(
+                                rhs.sig)
+                {
                 }
 
                 ResultType

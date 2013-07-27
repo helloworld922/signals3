@@ -45,7 +45,7 @@ namespace boost
                 (void) > perf_sig;
                 for (size_t i = 0; i < num_slots; ++i)
                 {
-                    perf_sig.push_back(&perf_handler);
+                    perf_sig.push_back_unsafe(&perf_handler);
                 }
                 std::cout << "signals3 thread-unsafe: " << num_slots << " slots" << std::endl;
                 for (size_t iter = 0; iter < samples; ++iter)
