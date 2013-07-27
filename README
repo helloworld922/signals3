@@ -7,11 +7,15 @@ accompanying file LICENSE_1_0.txt or copy at
 http://www.boost.org/LICENSE_1_0.txt)
 =======================================================================
 
-Signals/Slots implementation based off of atomic operations, with lock-free emits.
+Signals/Slots implementation based off of atomic operations, with lock-free* emits.
 
-The target is to implement all features currently offered by Boost Signals2 while keeping lock-free emits.
+The target is to implement all features currently offered by Boost Signals2 while keeping cheap* emits.
 
 Currently implemented towards the C++11 standard, but the goal is to eventually back-port to support C++03 using other Boost libraries.
+
+*note: I thought Atomic shared_ptr operations in both Boost and the Standard Library might have a lock-free shared_ptr, but I realized this was a lie.
+	They use spinlocks underneath to achieve atomicity. Never-the-less, this library does perform quite well in many cases, but not all cases.
+	I may look deeper into providing a shared_ptr/weak_ptr like implementation which really is lock-free/faster in the future, but I don't have any plans for now to do so.
 
 Current dependencies:
 
@@ -95,8 +99,10 @@ Namely:
 
 Based on these requirements I decided the main focus would be on implementing Signals/Slots with a highly optimized emit implementation.
 This was done using a doubly-linked list which is always atomically a consistent singly linked list.
-This allows for lock-free signal emit and a single writer (write operations typically must obtain a unique lock).
+This allows for cheap* signal emit and a single writer (write operations typically must obtain a unique lock).
 Additionally, handlers have been added which allow for thread-unsafe operations which allow for external synchronization, or no synchronization at all if the signal will not be modified under general use.
+
+*note: see note in the introduction about my lock-free assumptions, which turned out to be false. The library still performs quite well in many cases (compared to Boost Signals2), but not all cases.
 
 The library is fully re-entrant, thread-safe* (with thread-unsafe handlers added), and type-safe.
 
