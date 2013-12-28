@@ -30,8 +30,8 @@
 #define BOOST_SIGNALS3_USE_BOOST_FUNCTIONAL
 #endif
 
-#define BOOST_SIGNALS3_USE_BOOST_ATOMIC
-#define BOOST_SIGNALS3_USE_BOOST_MUTEX
+//#define BOOST_SIGNALS3_USE_BOOST_ATOMIC
+//#define BOOST_SIGNALS3_USE_BOOST_MUTEX
 //#define BOOST_SIGNALS3_USE_BOOST_FUNCTIONAL
 
 //#undef BOOST_SIGNALS3_USE_BOOST_ATOMIC
@@ -80,7 +80,7 @@
 //#if defined(BOOST_NO_CXX11_HDR_TUPLE)
 //#include <boost/tuple/tuple.hpp>
 //#else
-//#include <tuple>
+#include <tuple>
 //#endif
 
 namespace boost
@@ -130,8 +130,8 @@ namespace boost
 //            using ::boost::tuple;
 //            using ::boost::get;
 //#else
-//            using ::std::tuple;
-//            using ::std::get;
+      using ::std::tuple;
+      using ::std::get;
 //#endif
 
       // function wrapper

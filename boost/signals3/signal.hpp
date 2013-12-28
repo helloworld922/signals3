@@ -23,7 +23,7 @@ namespace boost
 {
   namespace signals3
   {
-    template<typename Signature, typename Combiner = optional_last_value< Signature >,
+    template<typename Signature, typename Combiner = optional_last_value< typename ::boost::signals3::detail::function<Signature>::result_type >,
              typename Group = int, typename GroupCompare = std::less< Group >,
              typename FunctionType = ::boost::signals3::detail::function< Signature >,
              typename ExtendedFunctionType = typename ::boost::signals3::detail::extended_signature<
@@ -57,6 +57,18 @@ namespace boost
       (const connection&, Args...), ExtendedFunctionType > extended_slot_type;
       typedef ::boost::signals3::detail::atomic< int > atomic_int_type;
     private:
+      // used for unpacking tuple to function call
+      template<int...>
+      struct seq
+      {};
+      template<int N, int... S>
+      struct gens : gens<N - 1, N - 1, S...>
+      {};
+      template<int... S>
+      struct gens<0, S...>
+      {
+        typedef seq<S...> type;
+      };
 
       struct t_node_base;
 
@@ -68,11 +80,6 @@ namespace boost
 //        mutable mutex_type _mutex;
         ::boost::signals3::detail::shared_ptr< t_node_base > next;
         ::boost::signals3::detail::weak_ptr< t_node_base > prev;
-
-        bool _extended;
-
-        t_node_base(bool _ext = false) : _extended(_ext)
-        {}
 
         virtual bool
         try_lock(
@@ -90,13 +97,8 @@ namespace boost
           return false;
         }
 
-        bool extended(void) const
-        {
-          return _extended;
-        }
-//
-//        virtual ResultType
-//        operator()(Args&&... args) const = 0;
+        virtual ResultType
+        operator()(std::tuple< Args... > params) const = 0;
       };
 
       struct node : public t_node_base
@@ -120,12 +122,17 @@ namespace boost
           return callback.try_lock(list);
         }
 
-//        template<typename... U>
-//        ResultType
-//        operator()(U&&... args) const override
-//        {
-//          return callback(std::forward<U>(args)...);
-//        }
+        template<int... S>
+        inline ResultType call_func(seq<S...>, ::boost::signals3::detail::tuple<Args...>& params) const
+        {
+          return callback.slot_function()(std::forward<Args>(std::get<S>(params))...);
+        }
+
+        virtual ResultType
+        operator()(std::tuple< Args... > params) const override
+        {
+          return call_func(typename gens<sizeof...(Args)>::type(), params);
+        }
       };
 
       struct extended_node : public t_node_base
@@ -134,7 +141,7 @@ namespace boost
         connection conn;
 
         extended_node(const extended_slot_type& callback) :
-          t_node_base(true), callback(callback)
+          callback(callback)
         {
         }
 
@@ -150,12 +157,18 @@ namespace boost
         {
           return callback.try_lock(list);
         }
-//
-//        virtual ResultType
-//        operator()(Args&&... args) const override
-//        {
-//          return callback(conn, std::forward<Args>(args)...);
-//        }
+
+        template<int... S>
+        inline ResultType call_func(seq<S...>, ::boost::signals3::detail::tuple<Args...>& params) const
+        {
+          return callback.slot_function()(conn, std::forward<Args>(std::get<S>(params))...);
+        }
+
+        virtual ResultType
+        operator()(std::tuple< Args... > params) const override
+        {
+          return call_func(typename gens<sizeof...(Args)>::type(), params);
+        }
       };
 
       template<typename B>
@@ -974,9 +987,10 @@ namespace boost
                 break;
               }
           }
-        iterator begin(boost::move(begin_ptr), tracking_list, *this);
-        iterator end(nullptr, tracking_list, *this);
-        return combiner(boost::move(begin), boost::move(end), std::forward<U>(args)...);
+        std::tuple<Args...> params(std::forward<U>(args)...);
+        iterator begin(boost::move(begin_ptr), tracking_list, params, *this);
+        iterator end(nullptr, tracking_list, params, *this);
+        return combiner(boost::move(begin), boost::move(end));
       }
 
       template<typename... U>
@@ -1004,9 +1018,10 @@ namespace boost
                 break;
               }
           }
-        unsafe_iterator begin(boost::move(begin_ptr), tracking_list, *this);
-        unsafe_iterator end(nullptr, tracking_list, *this);
-        return combiner(boost::move(begin), boost::move(end), std::forward<U>(args)...);
+        std::tuple<Args...> params(std::forward<U>(args)...);
+        unsafe_iterator begin(boost::move(begin_ptr), tracking_list, params, *this);
+        unsafe_iterator end(nullptr, tracking_list, params, *this);
+        return combiner(boost::move(begin), boost::move(end));
       }
     };
 
@@ -1019,6 +1034,7 @@ namespace boost
       ::boost::signals3::detail::shared_ptr< t_node_base > curr;
       ::boost::signals3::detail::forward_list<
       ::boost::signals3::detail::shared_ptr< void > >& tracking;
+      std::tuple<Args...> params;
       signal< ResultType
       (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >& sig;
 
@@ -1028,32 +1044,23 @@ namespace boost
       iterator(::boost::signals3::detail::shared_ptr< t_node_base >&& start_node,
                ::boost::signals3::detail::forward_list<
                ::boost::signals3::detail::shared_ptr< void > >& tracking,
+               std::tuple<Args...>& params,
                signal< ResultType
                (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >& sig) :
-        curr(boost::move(start_node)), tracking(tracking), sig(sig)
+        curr(boost::move(start_node)), tracking(tracking), params(params), sig(sig)
       {
       }
 
       iterator(iterator&& rhs) :
-        curr(boost::move(rhs.curr)), tracking(rhs.tracking), sig(
+        curr(boost::move(rhs.curr)), tracking(rhs.tracking), params(rhs.params), sig(
           rhs.sig)
       {
       }
 
-      template<typename... U>
       ResultType
-      operator()(U&&... args) const
+      operator*() const
       {
-//        std::cout << "iterator call" << std::endl;
-        t_node_base& tmp = *curr;
-        if(tmp.extended())
-          {
-            return static_cast<extended_node&>(tmp).callback(static_cast<extended_node&>(tmp).conn, std::forward<U>(args)...);
-          }
-        else
-          {
-            return static_cast<node&>(tmp).callback(std::forward<U>(args)...);
-          }
+        return (*curr)(params);
       }
 
       iterator&
@@ -1114,6 +1121,7 @@ namespace boost
       ::boost::signals3::detail::shared_ptr< t_node_base > curr;
       ::boost::signals3::detail::forward_list<
       ::boost::signals3::detail::shared_ptr< void > >& tracking;
+      std::tuple<Args...>& params;
       signal< ResultType
       (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >& sig;
 
@@ -1121,31 +1129,23 @@ namespace boost
       unsafe_iterator(::boost::signals3::detail::shared_ptr< t_node_base >&& start_node,
                       ::boost::signals3::detail::forward_list<
                       ::boost::signals3::detail::shared_ptr< void > >& tracking,
+                      std::tuple<Args...>& params,
                       signal< ResultType
                       (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >&sig) :
-        curr(boost::move(start_node)), tracking(tracking), sig(sig)
+        curr(boost::move(start_node)), tracking(tracking), params(params), sig(sig)
       {
       }
 
       unsafe_iterator(unsafe_iterator&& rhs) :
-        curr(boost::move(rhs.curr)), tracking(rhs.tracking), sig(rhs.sig)
+        curr(boost::move(rhs.curr)), tracking(rhs.tracking), params(rhs.params), sig(rhs.sig)
       {
       }
 
-      template<typename... U>
+//      template<typename... U>
       ResultType
-      operator()(U&&... args) const
+      operator*(void) const
       {
-//        return (*curr)(std::forward<U>(args)...);
-        t_node_base& tmp = *curr;
-        if(tmp.extended())
-          {
-            return static_cast<extended_node&>(tmp).callback(static_cast<extended_node&>(tmp).conn, std::forward<U>(args)...);
-          }
-        else
-          {
-            return static_cast<node&>(tmp).callback(std::forward<U>(args)...);
-          }
+        return (*curr)(params);
       }
 
       unsafe_iterator&

@@ -10,15 +10,15 @@
 //#include <boost/signals3/signals3.hpp>
 //#include "test/connection_test.hpp"
 //#include "test/slots_test.hpp"
-#include "test/perf/single_thread_perf.hpp"
+//#include "test/perf/single_thread_perf.hpp"
 //#include "test/perf/multi_thread_perf.hpp"
-//#include "test/forward_test.hpp"
+#include "test/forward_test.hpp"
 #include <iostream>
 
 int
 main(void)
 {
-//  boost::signals3::test::forward::test();
+  boost::signals3::test::forward::test();
 //    boost::signals3::test::connection::compile_test();
 //    boost::signals3::test::slots::compile_test();
   constexpr uint64_t WORK_CONST = 18;

@@ -18,44 +18,39 @@ namespace boost
 {
   namespace signals3
   {
-    template<typename Signature>
-    struct optional_last_value;
-
-    template<typename ResultType, typename... Args>
-    struct optional_last_value<ResultType(Args...)>
+    template<typename ResultType>
+    struct optional_last_value
     {
       typedef boost::optional< ResultType > result_type;
 
-      template<typename Iter, typename... U>
+      template<typename Iter>
       result_type
-      operator()(Iter begin, Iter end, U&&... args)
+      operator()(Iter begin, Iter end)
       {
         result_type result;
         while (begin != end)
-        {
-          std::cout << "combiner call" << std::endl;
-          begin(args...);
-          ++begin;
-        }
+          {
+            *begin;
+            ++begin;
+          }
         return result;
       }
     };
 
-    template<typename... Args>
-    struct optional_last_value< void(Args...) >
+    template<>
+    struct optional_last_value< void >
     {
       typedef void result_type;
 
-      template<typename Iter, typename... U>
+      template<typename Iter>
       void
-      operator()(Iter begin, Iter end, U&&... args) const
+      operator()(Iter begin, Iter end) const
       {
         while (begin != end)
-        {
-//          std::cout << "combiner call" << std::endl;
-          begin(args...);
-          ++begin;
-        }
+          {
+            *begin;
+            ++begin;
+          }
       }
     };
   }

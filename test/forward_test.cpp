@@ -66,10 +66,10 @@ namespace boost
 //          sig1.push_back(handler3);
           test_class a;
           
-          test_class &b = a;
+//          test_class &b = a;
 //          test_class &&c = boost::move(a);
-//          sig1.emit(a);
-          sig1.emit(b);
+          sig1.emit(a);
+//          sig1.emit(b);
 //          sig1.emit(std::forward<test_class>(c));
         }
       }
