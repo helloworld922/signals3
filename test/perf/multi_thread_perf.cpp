@@ -75,8 +75,8 @@ namespace boost
                 // create thread group and workers
                 signal3_perf_worker** workers = new signal3_perf_worker*[num_threads];
                 boost::thread_group my_group;
-                std::cout << "num threads: " << num_threads << std::endl;
-                std::cout << "num slots: " << num_slots << std::endl;
+//                std::cout << "num threads: " << num_threads << std::endl;
+//                std::cout << "num slots: " << num_slots << std::endl;
                 for (size_t i = 0; i < num_threads; ++i)
                 {
                     workers[i] = new signal3_perf_worker(call_times, samples, *perf_sig);
@@ -94,18 +94,28 @@ namespace boost
                 }
                 std::sort(safe_times.begin(), safe_times.end());
 //                std::sort(unsafe_times.begin(), unsafe_times.end());
-                std::cout << "safe times: " << std::endl;
-                std::cout << "\tmin: "
-                        << std::chrono::duration_cast< std::chrono::nanoseconds >(safe_times[0]).count()
-                                / (double) call_times << " ns" << std::endl;
-                std::cout << "\tmedian: "
-                        << std::chrono::duration_cast< std::chrono::nanoseconds >(
-                                safe_times[safe_times.size() / 2]).count() / (double) call_times
-                        << " ns" << std::endl;
-                std::cout << "\tmax: "
-                        << std::chrono::duration_cast< std::chrono::nanoseconds >(
-                                safe_times[safe_times.size() - 1]).count() / (double) call_times
-                        << " ns" << std::endl;
+//                std::cout << "safe times: " << std::endl;
+//                std::cout << "\tmin: " << std::endl;
+//				std::cout
+//                        << std::chrono::duration_cast< std::chrono::nanoseconds >(safe_times[0]).count()
+//                                / (double) call_times << std::endl;
+//                std::cout << "\tmedian: " << std::endl;
+//				std::cout
+//                        << std::chrono::duration_cast< std::chrono::nanoseconds >(
+//                                safe_times[safe_times.size() / 2]).count() / (double) call_times
+//                        << std::endl;
+//                std::cout << "\tmax: " << std::endl;
+//				std::cout
+//                        << std::chrono::duration_cast< std::chrono::nanoseconds >(
+//                                safe_times[safe_times.size() - 1]).count() / (double) call_times
+//                        << std::endl;
+				auto min = std::chrono::duration_cast< std::chrono::nanoseconds >(safe_times[0]).count()
+                               / (double) call_times;
+							   auto median = std::chrono::duration_cast< std::chrono::nanoseconds >(
+                                safe_times[safe_times.size() / 2]).count() / (double) call_times;
+			    auto max = std::chrono::duration_cast< std::chrono::nanoseconds >(
+                                safe_times[safe_times.size() - 1]).count() / (double) call_times;
+								std::cout << min << "\t" << median << "\t" << max;
                 // unsafe times
 //                std::cout << "unsafe times: " << std::endl;
 //                std::cout << "\tmin: "
@@ -171,8 +181,8 @@ namespace boost
                 // create thread group and workers
                 signal2_perf_worker** workers = new signal2_perf_worker*[num_threads];
                 boost::thread_group my_group;
-                std::cout << "num threads: " << num_threads << std::endl;
-                std::cout << "num slots: " << num_slots << std::endl;
+//                std::cout << "num threads: " << num_threads << std::endl;
+//                std::cout << "num slots: " << num_slots << std::endl;
                 for (size_t i = 0; i < num_threads; ++i)
                 {
                     workers[i] = new signal2_perf_worker(call_times, samples, *perf_sig);
@@ -189,18 +199,28 @@ namespace boost
                     delete workers[i];
                 }
                 std::sort(times.begin(), times.end());
-                std::cout << "signals2 times: " << std::endl;
-                std::cout << "\tmin: "
-                        << std::chrono::duration_cast< std::chrono::nanoseconds >(times[0]).count()
-                                / (double) call_times << " ns" << std::endl;
-                std::cout << "\tmedian: "
-                        << std::chrono::duration_cast< std::chrono::nanoseconds >(
-                                times[times.size() / 2]).count() / (double) call_times
-                        << " ns" << std::endl;
-                std::cout << "\tmax: "
-                        << std::chrono::duration_cast< std::chrono::nanoseconds >(
-                                times[times.size() - 1]).count() / (double) call_times
-                        << " ns" << std::endl;
+				auto min = std::chrono::duration_cast< std::chrono::nanoseconds >(times[0]).count()
+                               / (double) call_times;
+							   auto median = std::chrono::duration_cast< std::chrono::nanoseconds >(
+                                times[times.size() / 2]).count() / (double) call_times;
+			    auto max = std::chrono::duration_cast< std::chrono::nanoseconds >(
+                                times[times.size() - 1]).count() / (double) call_times;
+								std::cout << min << "\t" << median << "\t" << max;
+//                std::cout << "signals2 times: " << std::endl;
+//                std::cout << "\tmin: " << std::endl;
+//				std::cout
+//                        << std::chrono::duration_cast< std::chrono::nanoseconds >(times[0]).count()
+//                                / (double) call_times << std::endl;
+//                std::cout << "\tmedian: " << std::endl;
+//				std::cout
+//                        << std::chrono::duration_cast< std::chrono::nanoseconds >(
+//                                times[times.size() / 2]).count() / (double) call_times
+//                         << std::endl;
+//                std::cout << "\tmax: " << std::endl;
+//				std::cout
+//                        << std::chrono::duration_cast< std::chrono::nanoseconds >(
+//                                times[times.size() - 1]).count() / (double) call_times
+//                         << std::endl;
                 delete perf_sig;
                 delete[] workers;
             }

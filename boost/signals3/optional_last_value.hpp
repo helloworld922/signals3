@@ -16,44 +16,49 @@
 
 namespace boost
 {
-    namespace signals3
+  namespace signals3
+  {
+    template<typename Signature>
+    struct optional_last_value;
+
+    template<typename ResultType, typename... Args>
+    struct optional_last_value<ResultType(Args...)>
     {
-        template<typename ResultType>
-            struct optional_last_value
-            {
-                typedef boost::optional< ResultType > result_type;
+      typedef boost::optional< ResultType > result_type;
 
-                template<typename Iter>
-                    result_type
-                    operator()(Iter begin, Iter end)
-                    {
-                        result_type result;
-                        while (begin != end)
-                        {
-                            result = *begin;
-                            ++begin;
-                        }
-                        return result;
-                    }
-            };
+      template<typename Iter, typename... U>
+      result_type
+      operator()(Iter begin, Iter end, U&&... args)
+      {
+        result_type result;
+        while (begin != end)
+        {
+          std::cout << "combiner call" << std::endl;
+          begin(args...);
+          ++begin;
+        }
+        return result;
+      }
+    };
 
-        template<>
-            struct optional_last_value< void >
-            {
-                typedef void result_type;
+    template<typename... Args>
+    struct optional_last_value< void(Args...) >
+    {
+      typedef void result_type;
 
-                template<typename Iter>
-                    void
-                    operator()(Iter begin, Iter end) const
-                    {
-                        while (begin != end)
-                        {
-                            *begin;
-                            ++begin;
-                        }
-                    }
-            };
-    }
+      template<typename Iter, typename... U>
+      void
+      operator()(Iter begin, Iter end, U&&... args) const
+      {
+        while (begin != end)
+        {
+//          std::cout << "combiner call" << std::endl;
+          begin(args...);
+          ++begin;
+        }
+      }
+    };
+  }
 }
 
 #endif // BOOST_SIGNALS3_OPTIONAL_LAST_VALUE_HPP

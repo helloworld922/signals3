@@ -22,7 +22,9 @@ namespace boost
             {
                 mutable ::boost::signals3::detail::atomic< int > _unusable;
 
-                static const int _disconnected = INT_MIN;
+//                static const int _disconnected = INT_MIN;
+                // TODO: why does this break with gcc?
+                static const int _disconnected = -0xFFFF;
             public:
                 virtual
                 ~node_base(void)
