@@ -16,207 +16,209 @@
 
 namespace boost
 {
-    namespace signals3
+  namespace signals3
+  {
+    class scoped_connection;
+
+    template<typename Signature, typename Combiner, typename Group,
+             typename GroupCompare, typename FunctionType,
+             typename ExtendedFunctionType>
+    class signal;
+
+    class connection
     {
-        class scoped_connection;
+      friend class scoped_connection;
 
-        template<typename Signature, typename Combiner, typename Group, typename GroupCompare,
-                typename FunctionType, typename ExtendedFunctionType, typename Mutex>
-            class signal;
+      template<typename Signature, typename Combiner, typename Group,
+               typename GroupCompare, typename FunctionType,
+               typename ExtendedFunctionType>
+      friend class ::boost::signals3::signal;
 
-        class connection
-        {
-            friend class scoped_connection;
+      // maintains no ownership over _sig
+      ::boost::signals3::detail::signal_base* _sig;
+      ::boost::signals3::detail::weak_ptr< ::boost::signals3::detail::node_base > _node;
 
-            template<typename Signature, typename Combiner, typename Group, typename GroupCompare,
-                    typename FunctionType, typename ExtendedFunctionType, typename Mutex>
-                friend class ::boost::signals3::signal;
+      connection(::boost::signals3::detail::signal_base* _sig,
+                 const ::boost::signals3::detail::weak_ptr< ::boost::signals3::detail::node_base >& _node) :
+        _sig(_sig), _node(_node)
+      {
+      }
 
-            // maintains no ownership over _sig
-            ::boost::signals3::detail::signal_base* _sig;
-            ::boost::signals3::detail::weak_ptr< ::boost::signals3::detail::node_base > _node;
+      connection(::boost::signals3::detail::signal_base* _sig,
+                 ::boost::signals3::detail::weak_ptr< ::boost::signals3::detail::node_base >&& _node) :
+        _sig(_sig), _node(boost::move(_node))
+      {
+      }
+    public:
+      connection(void) :
+        _sig(nullptr)
+      {
+      }
 
-            connection(::boost::signals3::detail::signal_base* _sig,
-                    const ::boost::signals3::detail::weak_ptr< ::boost::signals3::detail::node_base >& _node) :
-                    _sig(_sig), _node(_node)
-            {
-            }
+      connection(const connection& conn) :
+        _sig(conn._sig), _node(conn._node)
+      {
+      }
 
-            connection(::boost::signals3::detail::signal_base* _sig,
-                    ::boost::signals3::detail::weak_ptr< ::boost::signals3::detail::node_base >&& _node) :
-                    _sig(_sig), _node(boost::move(_node))
-            {
-            }
-        public:
-            connection(void) :
-                    _sig(nullptr)
-            {
-            }
+      connection(connection&& conn) :
+        _sig(conn._sig), _node(boost::move(conn._node))
+      {
+      }
 
-            connection(const connection& conn) :
-                    _sig(conn._sig), _node(conn._node)
-            {
-            }
+      connection&
+      operator=(const connection& conn)
+      {
+        _sig = conn._sig;
+        _node = conn._node;
+        return *this;
+      }
 
-            connection(connection&& conn) :
-                    _sig(conn._sig), _node(boost::move(conn._node))
-            {
-            }
+      connection&
+      operator=(connection&& conn)
+      {
+        _sig = boost::move(conn._sig);
+        _node = boost::move(conn._node);
+        return *this;
+      }
 
-            connection&
-            operator=(const connection& conn)
-            {
-                _sig = conn._sig;
-                _node = conn._node;
-                return *this;
-            }
+      virtual
+      ~connection(void)
+      {
+      }
 
-            connection&
-            operator=(connection&& conn)
-            {
-                _sig = boost::move(conn._sig);
-                _node = boost::move(conn._node);
-                return *this;
-            }
+      bool
+      blocked(void) const
+      {
+        ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
+          _node.lock();
+        if (temp != nullptr)
+          {
+            return temp->blocked();
+          }
+        return false;
+      }
 
-            virtual
-            ~connection(void)
-            {
-            }
+      bool
+      block(void) const
+      {
+        ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
+          _node.lock();
+        if (temp != nullptr)
+          {
+            return temp->block();
+          }
+        return false;
+      }
+      bool
+      unblock(void) const
+      {
+        ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
+          _node.lock();
+        if (temp != nullptr)
+          {
+            return temp->unblock();
+          }
+        return false;
+      }
 
-            bool
-            blocked(void) const
-            {
-                ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
-                        _node.lock();
-                if (temp != nullptr)
-                {
-                    return temp->blocked();
-                }
-                return false;
-            }
+      void
+      disconnect(void)
+      {
+        ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
+          _node.lock();
+        if (temp != nullptr)
+          {
+            _sig->disconnect(boost::move(temp));
+          }
+      }
 
-            bool
-            block(void) const
-            {
-                ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
-                        _node.lock();
-                if (temp != nullptr)
-                {
-                    return temp->block();
-                }
-                return false;
-            }
-            bool
-            unblock(void) const
-            {
-                ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
-                        _node.lock();
-                if (temp != nullptr)
-                {
-                    return temp->unblock();
-                }
-                return false;
-            }
+      void
+      disconnect_unsafe(void)
+      {
+        ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
+          _node.lock();
+        if (temp != nullptr)
+          {
+            _sig->disconnect_unsafe(boost::move(temp));
+          }
+      }
 
-            void
-            disconnect(void)
-            {
-                ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
-                        _node.lock();
-                if (temp != nullptr)
-                {
-                    _sig->disconnect(boost::move(temp));
-                }
-            }
+      bool
+      connected(void) const
+      {
+        ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
+          _node.lock();
+        if (temp != nullptr)
+          {
+            return temp->connected();
+          }
+        return false;
+      }
 
-            void
-            disconnect_unsafe(void)
-            {
-                ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
-                        _node.lock();
-                if (temp != nullptr)
-                {
-                    _sig->disconnect_unsafe(boost::move(temp));
-                }
-            }
+      bool
+      usable(void) const
+      {
+        ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
+          _node.lock();
+        if (temp != nullptr)
+          {
+            return temp->usable();
+          }
+        return false;
+      }
+    };
 
-            bool
-            connected(void) const
-            {
-                ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
-                        _node.lock();
-                if (temp != nullptr)
-                {
-                    return temp->connected();
-                }
-                return false;
-            }
+    class scoped_connection : public connection
+    {
+    public:
+      scoped_connection(const connection& conn) :
+        connection(conn)
+      {
 
-            bool
-            usable(void) const
-            {
-                ::boost::signals3::detail::shared_ptr< ::boost::signals3::detail::node_base > temp =
-                        _node.lock();
-                if (temp != nullptr)
-                {
-                    return temp->usable();
-                }
-                return false;
-            }
-        };
+      }
 
-        class scoped_connection : public connection
-        {
-        public:
-            scoped_connection(const connection& conn) :
-                    connection(conn)
-            {
+      scoped_connection(connection&& conn) :
+        connection(boost::move(conn))
+      {
 
-            }
+      }
 
-            scoped_connection(connection&& conn) :
-                    connection(boost::move(conn))
-            {
+      scoped_connection&
+      operator=(const connection& conn)
+      {
+        disconnect();
+        _sig = conn._sig;
+        _node = conn._node;
+        return *this;
+      }
 
-            }
+      scoped_connection&
+      operator=(connection&& conn)
+      {
+        disconnect();
+        _sig = boost::move(conn._sig);
+        _node = boost::move(conn._node);
+        return *this;
+      }
 
-            scoped_connection&
-            operator=(const connection& conn)
-            {
-                disconnect();
-                _sig = conn._sig;
-                _node = conn._node;
-                return *this;
-            }
+      /**
+       * Not thread safe!
+       */
+      connection
+      release(void)
+      {
+        connection conn(*this);
+        _sig = nullptr;
+        _node.reset();
+        return conn;
+      }
 
-            scoped_connection&
-            operator=(connection&& conn)
-            {
-                disconnect();
-                _sig = boost::move(conn._sig);
-                _node = boost::move(conn._node);
-                return *this;
-            }
-
-            /**
-             * Not thread safe!
-             */
-            connection
-            release(void)
-            {
-                connection conn(*this);
-                _sig = nullptr;
-                _node.reset();
-                return conn;
-            }
-
-            ~scoped_connection(void)
-            {
-                disconnect();
-            }
-        };
-    }
+      ~scoped_connection(void)
+      {
+        disconnect();
+      }
+    };
+  }
 }
 
 #endif // BOOST_SIGNALS3_CONNECTION_HPP

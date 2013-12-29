@@ -16,24 +16,23 @@
 
 namespace boost
 {
-    namespace signals3
+  namespace signals3
+  {
+    class connection;
+
+    namespace detail
     {
-        class connection;
+      template<typename Signature>
+      struct extended_signature;
 
-        namespace detail
-        {
-            template<typename Signature>
-                struct extended_signature;
-
-            template<typename ResultType, typename ... Args>
-                struct extended_signature<ResultType
-                (Args...)>
-                {
-                    typedef ::boost::signals3::detail::function<ResultType
-                    (const connection&, Args...)> type;
-                };
-        }
+      template<typename ResultType, typename ... Args>
+      struct extended_signature<ResultType(Args...)>
+      {
+        typedef ::boost::signals3::detail::function<ResultType
+        (const connection&, Args...)> type;
+      };
     }
+  }
 }
 
 #endif // BOOST_SIGNALS3_EXTENDED_SIGNATURE_HPP

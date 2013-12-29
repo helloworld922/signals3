@@ -21,7 +21,7 @@ namespace boost
     {
 //      int val[2];
       inline void
-      perf_handler(size_t a)
+      perf_handler()
       {
 //        for (size_t i = 0; i < 2; ++i)
 //          {
@@ -29,7 +29,7 @@ namespace boost
 //          }
       }
 
-#define FUNC_SIG void(size_t)
+#define FUNC_SIG void(void)
 
 #if defined(SIGNALS3_ST_SAFE_PERF_TESTING)
       void
@@ -55,7 +55,7 @@ namespace boost
             std::chrono::high_resolution_clock::time_point start = clock.now();
             for (size_t i = 0; i < call_times; ++i)
               {
-                perf_sig.emit(i);
+                perf_sig.emit();
               }
             std::chrono::high_resolution_clock::time_point end = clock.now();
             times.push_back(end - start);
@@ -98,7 +98,7 @@ namespace boost
             std::chrono::high_resolution_clock::time_point start = clock.now();
             for (size_t i = 0; i < call_times; ++i)
               {
-                perf_sig.emit_unsafe(i);
+                perf_sig.emit_unsafe();
               }
             std::chrono::high_resolution_clock::time_point end = clock.now();
             times.push_back(end - start);

@@ -15,39 +15,39 @@
 
 namespace boost
 {
-    namespace signals3
+  namespace signals3
+  {
+    class connection;
+
+    template<typename Signature, typename Combiner, typename Group,
+             typename GroupCompare, typename FunctionType, typename ExtendedFunctionType>
+    class signal;
+
+    namespace detail
     {
-        class connection;
+      class signal_base
+      {
+        friend class ::boost::signals3::connection;
 
-        template<typename Signature, typename Combiner, typename Group, typename GroupCompare,
-                typename FunctionType, typename ExtendedFunctionType, typename Mutex>
-            class signal;
+        template<typename Signature, typename Combiner, typename Group,
+                 typename GroupCompare, typename FunctionType,
+                 typename ExtendedFunctionType>
+        friend class ::boost::signals3::signal;
 
-        namespace detail
+        virtual void
+        disconnect(::boost::signals3::detail::shared_ptr< node_base >&& node) = 0;
+
+        virtual void
+        disconnect_unsafe(::boost::signals3::detail::shared_ptr< node_base >&& node) = 0;
+
+      public:
+        virtual
+        ~signal_base(void)
         {
-            class signal_base
-            {
-                friend class ::boost::signals3::connection;
-
-                template<typename Signature, typename Combiner, typename Group,
-                        typename GroupCompare, typename FunctionType, typename ExtendedFunctionType,
-                        typename Mutex>
-                    friend class ::boost::signals3::signal;
-
-                virtual void
-                disconnect(::boost::signals3::detail::shared_ptr< node_base >&& node) = 0;
-
-                virtual void
-                disconnect_unsafe(::boost::signals3::detail::shared_ptr< node_base >&& node) = 0;
-
-            public:
-                virtual
-                ~signal_base(void)
-                {
-                }
-            };
         }
+      };
     }
+  }
 }
 
 #endif // BOOST_SIGNALS3_SIGNAL_BASE_HPP

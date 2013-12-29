@@ -30,13 +30,22 @@
 #define BOOST_SIGNALS3_USE_BOOST_FUNCTIONAL
 #endif
 
+// TODO: Problem! For some reason boost::tuple doesn't work with variadics
+#if defined(BOOST_NO_CXX11_HDR_TUPLE)
+#define BOOST_SIGNALS3_USE_BOOST_TUPLE
+#endif
+
 //#define BOOST_SIGNALS3_USE_BOOST_ATOMIC
 //#define BOOST_SIGNALS3_USE_BOOST_MUTEX
 //#define BOOST_SIGNALS3_USE_BOOST_FUNCTIONAL
+//#define BOOST_SIGNALS3_USE_BOOST_TUPLE
 
 //#undef BOOST_SIGNALS3_USE_BOOST_ATOMIC
 //#undef BOOST_SIGNALS3_USE_BOOST_MUTEX
+// for some reason boost thinks clang doesn't have std::function
 #undef BOOST_SIGNALS3_USE_BOOST_FUNCTIONAL
+// for some reason boost thinks clang doesn't have std::tuple
+#undef BOOST_SIGNALS3_USE_BOOST_TUPLE
 
 #define BOOST_SIGNALS3_USE_FORWARD_LIST
 
@@ -77,11 +86,11 @@
 #include <vector>
 #endif
 
-//#if defined(BOOST_NO_CXX11_HDR_TUPLE)
-//#include <boost/tuple/tuple.hpp>
-//#else
+#if defined(BOOST_SIGNALS3_USE_BOOST_TUPLE)
+#include <boost/tuple/tuple.hpp>
+#else
 #include <tuple>
-//#endif
+#endif
 
 namespace boost
 {
@@ -126,13 +135,13 @@ namespace boost
 #endif
 
       // tuple
-//#if defined(BOOST_NO_CXX11_HDR_TUPLE)
-//            using ::boost::tuple;
-//            using ::boost::get;
-//#else
+#if defined(BOOST_SIGNALS3_USE_BOOST_TUPLE)
+            using ::boost::tuple;
+            using ::boost::get;
+#else
       using ::std::tuple;
       using ::std::get;
-//#endif
+#endif
 
       // function wrapper
 #if defined(BOOST_SIGNALS3_USE_BOOST_FUNCTIONAL)
@@ -147,7 +156,6 @@ namespace boost
 #else
       template<typename T> using forward_list = std::vector<T>;
 #endif
-
     }
   }
 }

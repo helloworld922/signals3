@@ -79,7 +79,7 @@ namespace boost
           
 //          test_class &b = a;
 //          test_class &&c = boost::move(a);
-          sig1.emit(a);
+//          sig1.emit(a);
 //          sig1.emit(b);
 //          sig1.emit(std::forward<test_class>(c));
         }
