@@ -10,7 +10,7 @@
 //#include <boost/signals3/signals3.hpp>
 //#include "test/connection_test.hpp"
 //#include "test/slots_test.hpp"
-//#include "test/perf/single_thread_perf.hpp"
+#include "test/perf/single_thread_perf.hpp"
 //#include "test/perf/multi_thread_perf.hpp"
 #include "test/forward_test.hpp"
 #include <iostream>
@@ -18,11 +18,11 @@
 int
 main(void)
 {
-  boost::signals3::test::forward::test();
+//  boost::signals3::test::forward::test();
 //    boost::signals3::test::connection::compile_test();
 //    boost::signals3::test::slots::compile_test();
-  constexpr uint64_t WORK_CONST = 18;
-  constexpr uint64_t NUM_SAMPLES = 256ULL;
+  constexpr uint64_t WORK_CONST = 16;
+  constexpr uint64_t NUM_SAMPLES = 1024ULL;
 
   for (uint64_t i = 0; i < 6; ++i)
     {

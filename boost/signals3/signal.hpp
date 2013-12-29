@@ -77,9 +77,20 @@ namespace boost
 
       struct t_node_base : public ::boost::signals3::detail::node_base
       {
-//        mutable mutex_type _mutex;
         ::boost::signals3::detail::shared_ptr< t_node_base > next;
         ::boost::signals3::detail::weak_ptr< t_node_base > prev;
+
+        enum state
+        {
+          NONE = 0, EXTENDED = 1<<0, GROUPED = 1<<1
+        };
+
+        const state state_;
+
+        t_node_base(state state_ = NONE) : state_(state_)
+        {}
+        
+        virtual ~t_node_base() = default;
 
         virtual bool
         try_lock(
@@ -91,21 +102,35 @@ namespace boost
           return nullptr;
         }
 
-        virtual bool
-        grouped(void) const
+        inline bool grouped(void) const
         {
-          return false;
+          return (state_ & state::GROUPED);
         }
 
-        virtual ResultType
-        operator()(std::tuple< Args... > params) const = 0;
+        inline bool extended(void) const
+        {
+          return (state_ & state::EXTENDED);
+        }
+
+//        template<typename... U>
+//        result_type operator()(::boost::signals3::detail::tuple<U...>& params) const
+//        {
+//          if(!extended())
+//            {
+//              return static_cast<const node&>(*this).call_func(typename gens<sizeof...(U)>::type(), params);
+//            }
+//          else
+//            {
+//              return static_cast<const extended_node&>(*this).call_func(typename gens<sizeof...(U)>::type(), params);
+//            }
+//        }
       };
 
       struct node : public t_node_base
       {
         slot_type callback;
         node(const slot_type& callback) :
-          callback(callback)
+          t_node_base(false), callback(callback)
         {
         }
 
@@ -122,16 +147,10 @@ namespace boost
           return callback.try_lock(list);
         }
 
-        template<int... S>
-        inline ResultType call_func(seq<S...>, ::boost::signals3::detail::tuple<Args...>& params) const
+        template<int... S, typename... U>
+        inline ResultType call_func(seq<S...>, ::boost::signals3::detail::tuple<U...>& params) const
         {
-          return callback.slot_function()(std::forward<Args>(std::get<S>(params))...);
-        }
-
-        virtual ResultType
-        operator()(std::tuple< Args... > params) const override
-        {
-          return call_func(typename gens<sizeof...(Args)>::type(), params);
+          return callback.slot_function()(std::forward<U>(std::get<S>(params))...);
         }
       };
 
@@ -141,7 +160,7 @@ namespace boost
         connection conn;
 
         extended_node(const extended_slot_type& callback) :
-          callback(callback)
+          t_node_base(true), callback(callback)
         {
         }
 
@@ -158,16 +177,10 @@ namespace boost
           return callback.try_lock(list);
         }
 
-        template<int... S>
-        inline ResultType call_func(seq<S...>, ::boost::signals3::detail::tuple<Args...>& params) const
+        template<int... S, typename... U>
+        inline ResultType call_func(seq<S...>, ::boost::signals3::detail::tuple<U...>& params) const
         {
-          return callback.slot_function()(conn, std::forward<Args>(std::get<S>(params))...);
-        }
-
-        virtual ResultType
-        operator()(std::tuple< Args... > params) const override
-        {
-          return call_func(typename gens<sizeof...(Args)>::type(), params);
+          return callback.slot_function()(conn, std::forward<U>(std::get<S>(params))...);
         }
       };
 
@@ -207,9 +220,11 @@ namespace boost
         }
       };
 
+      template<typename... U>
       class iterator;
       //friend class signal::iterator;
 
+      template<typename... U>
       class unsafe_iterator;
       //friend class signal::unsafe_iterator;
 
@@ -544,9 +559,12 @@ namespace boost
       }
 
     public:
-      signal(void)
-      {
-      }
+      signal(void) = default;
+
+      signal(const signal&) = delete;
+
+      // TODO
+      signal(signal&& s) = delete;
 
       connection insert(const group_type& group, const slot_type& callback)
       {
@@ -987,9 +1005,9 @@ namespace boost
                 break;
               }
           }
-        std::tuple<Args...> params(std::forward<U>(args)...);
-        iterator begin(boost::move(begin_ptr), tracking_list, params, *this);
-        iterator end(nullptr, tracking_list, params, *this);
+        std::tuple<U...> params(std::forward<U>(args)...);
+        iterator<U...> begin(boost::move(begin_ptr), tracking_list, params, *this);
+        iterator<U...> end(nullptr, tracking_list, params, *this);
         return combiner(boost::move(begin), boost::move(end));
       }
 
@@ -1018,9 +1036,9 @@ namespace boost
                 break;
               }
           }
-        std::tuple<Args...> params(std::forward<U>(args)...);
-        unsafe_iterator begin(boost::move(begin_ptr), tracking_list, params, *this);
-        unsafe_iterator end(nullptr, tracking_list, params, *this);
+        std::tuple<U...> params(std::forward<U>(args)...);
+        unsafe_iterator<U...> begin(boost::move(begin_ptr), tracking_list, params, *this);
+        unsafe_iterator<U...> end(nullptr, tracking_list, params, *this);
         return combiner(boost::move(begin), boost::move(end));
       }
     };
@@ -1028,23 +1046,25 @@ namespace boost
     template<typename ResultType, typename ... Args, typename Combiner, typename Group,
              typename GroupCompare, typename FunctionType, typename ExtendedFunctionType,
              typename Mutex>
+             template<typename... U>
     class signal< ResultType
       (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType, Mutex >::iterator
     {
       ::boost::signals3::detail::shared_ptr< t_node_base > curr;
       ::boost::signals3::detail::forward_list<
       ::boost::signals3::detail::shared_ptr< void > >& tracking;
-      std::tuple<Args...> params;
+      std::tuple<U...>& params;
       signal< ResultType
       (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >& sig;
 
 //				typedef boost::signals3::detail::lock_guard< mutex_type > lock_guard_type;
 
     public:
+      template<typename... V>
       iterator(::boost::signals3::detail::shared_ptr< t_node_base >&& start_node,
                ::boost::signals3::detail::forward_list<
                ::boost::signals3::detail::shared_ptr< void > >& tracking,
-               std::tuple<Args...>& params,
+               std::tuple<V...>& params,
                signal< ResultType
                (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >& sig) :
         curr(boost::move(start_node)), tracking(tracking), params(params), sig(sig)
@@ -1060,7 +1080,16 @@ namespace boost
       ResultType
       operator*() const
       {
-        return (*curr)(params);
+        auto& tmp = *curr;
+        if(!tmp.extended())
+            {
+              return static_cast<const node&>(tmp).call_func(typename gens<sizeof...(U)>::type(), params);
+            }
+          else
+            {
+              return static_cast<const extended_node&>(tmp).call_func(typename gens<sizeof...(U)>::type(), params);
+            }
+//        return (*curr)(params);
       }
 
       iterator&
@@ -1115,21 +1144,23 @@ namespace boost
     template<typename ResultType, typename ... Args, typename Combiner, typename Group,
              typename GroupCompare, typename FunctionType, typename ExtendedFunctionType,
              typename Mutex>
+             template<typename... U>
     class signal< ResultType
       (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType, Mutex >::unsafe_iterator
     {
       ::boost::signals3::detail::shared_ptr< t_node_base > curr;
       ::boost::signals3::detail::forward_list<
       ::boost::signals3::detail::shared_ptr< void > >& tracking;
-      std::tuple<Args...>& params;
+      std::tuple<U...>& params;
       signal< ResultType
       (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >& sig;
 
     public:
+      template<typename... V>
       unsafe_iterator(::boost::signals3::detail::shared_ptr< t_node_base >&& start_node,
                       ::boost::signals3::detail::forward_list<
                       ::boost::signals3::detail::shared_ptr< void > >& tracking,
-                      std::tuple<Args...>& params,
+                      std::tuple<V...>& params,
                       signal< ResultType
                       (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >&sig) :
         curr(boost::move(start_node)), tracking(tracking), params(params), sig(sig)
@@ -1145,7 +1176,16 @@ namespace boost
       ResultType
       operator*(void) const
       {
-        return (*curr)(params);
+//        return (*curr)(params);
+        auto& tmp = *curr;
+        if(!tmp.extended())
+            {
+              return static_cast<const node&>(tmp).call_func(typename gens<sizeof...(U)>::type(), params);
+            }
+          else
+            {
+              return static_cast<const extended_node&>(tmp).call_func(typename gens<sizeof...(U)>::type(), params);
+            }
       }
 
       unsafe_iterator&

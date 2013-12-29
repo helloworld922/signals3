@@ -13,18 +13,28 @@ namespace boost
         class test_class
         {
         public:
-          test_class(void)
+          bool moved;
+          test_class(void) : moved(false)
           {
             std::cout << "construct" << std::endl;
           }
           
-          test_class(const test_class&)
+          test_class(const test_class& c) : moved(c.moved)
           {
+            if(c.moved)
+            {
+              std::cout << "problem! moving a moved object" << std::endl;
+            }
             std::cout << "copy" << std::endl;
           }
           
-          test_class(test_class&&)
+          test_class(test_class&& c) : moved(c.moved)
           {
+            if(c.moved)
+            {
+              std::cout << "problem! moving a moved object" << std::endl;
+            }
+            c.moved = true;
             std::cout << "move" << std::endl;
           }
           
@@ -46,7 +56,7 @@ namespace boost
           std::cout << "handler(test_class)" << std::endl;
         }
         
-        void handler2(const test_class&)
+        void handler2(test_class&)
         {
           std::cout << "handler(const test_class&)" << std::endl;
         }
@@ -61,7 +71,8 @@ namespace boost
           boost::signals3::signal<void(test_class&)> sig1;
           
           sig1.push_back(handler1);
-//          sig1.push_back(handler1);
+          sig1.push_back(handler1);
+          sig1.push_back(handler2);
           sig1.push_back(handler2);
 //          sig1.push_back(handler3);
           test_class a;
