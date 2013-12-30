@@ -30,7 +30,7 @@ namespace boost
         result_type result;
         while (begin != end)
           {
-            *begin;
+            result = *begin;
             ++begin;
           }
         return result;
