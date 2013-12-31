@@ -40,7 +40,7 @@ In addition to these hard requirements, the library will substitute Boost librar
 - boost::function***	-or-	c++11 std::function
 
 note**: If there is no c++11 atomic shared_ptr, the library will only use boost::shared_ptr/boost::weak_ptr.
-note***: boost::function*** doesn't seem to forward parameters correctly.
+note***: boost::function*** doesn't seem to forward parameters correctly, only copies (multiple times potentially).
 
 hopefully that's all of them.
 
