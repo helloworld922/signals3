@@ -24,6 +24,7 @@ Current dependencies:
 - boost::move*
 - c++11 forward_list
 - c++11 std::forward
+- c++11 std::tuple (boost::tuple doesn't work do to problems unpacking)
 - boost optional
 
 note*: boost::move internally will bind to std::move if compiler support is available.
@@ -36,10 +37,10 @@ In addition to these hard requirements, the library will substitute Boost librar
 - boost::shared_ptr		-or-	c++11 std::shared_ptr**
 - boost::weak_ptr		-or-	c++11 std::weak_ptr**
 - boost::make_shared	-or-	c++11 std::make_shared**
-- boost::function		-or-	c++11 std::function
-- boost::tuple			-or-	c++11 tuple
+- boost::function***	-or-	c++11 std::function
 
 note**: If there is no c++11 atomic shared_ptr, the library will only use boost::shared_ptr/boost::weak_ptr.
+note***: boost::function*** doesn't seem to forward parameters correctly.
 
 hopefully that's all of them.
 
@@ -107,3 +108,69 @@ Additionally, handlers have been added which allow for thread-unsafe operations 
 The library is fully re-entrant, thread-safe* (with thread-unsafe handlers added), and type-safe.
 
 *note: thread safety guarantee is similar to Boost Signals2 thread safety. For example, building a slot is not implemented in a thread-safe manner.
+Another observation about thread safety is that it is not safe to implement multi-threaded combiners: a combiner must run exclusively on the thread it was called from.
+
+Further more, on return the iterators passed in are invalid.
+
+====================
+Issues/"Design Features"
+====================
+
+Two issue/design feature I noticed was in forwarding of parameters and use of rvalue references.
+
+--------
+Forwarding Parameters
+--------
+
+class my_class;
+void slot(my_class);
+
+signal<void(my_class)> msig;
+
+msig.push_back(slot); // slot1
+msig.push_back(slot); // slot2
+
+msig.emit(my_class()); // on calling each slot, temporary rvalue is always copied and passed to each slot
+
+This code will always pass a copy of the parameters to each slot.
+This is done to prevent perfect forwarding moving the internals of the original my_class object into the parameter for slot1, then calling slot2 with the gutted original rvalue.
+
+As a consequence it is impossible to perfectly forward parameters to a slot:
+
+void slot(std::vector<int> vals);
+
+signal<void(std::vector<int>)> msig;
+msig.push_back(slot);
+std::vector<int> x = {1, 2, 3, 4, 5};
+
+msig.emit(std::move(x)); // copies vector x to each slot
+// observable: contents of x are unchanged
+
+This is seen as a minor issue because in theory this type of code is only safe/desirable if there is exactly zero or one slot.
+I would recommend using lvalue reference parameters as has been done in the past.
+
+void slot(std::vector<int>& vals);
+
+signal<void(std::vector<int>)> msig;
+msig.push_back(slot);
+std::vector<int> x = {1, 2, 3, 4, 5};
+
+msig.emit(std::move(x)); // copies vector x to each slot
+// observable: contents of x are unchanged
+
+--------
+Rvalue reference parameters on slots
+--------
+
+As a result of the above it is impossible to emit slots which take rvalue reference parameter types.
+
+void slot(my_class&& arg);
+
+signal<void(my_class&&)> msig; // valid
+msig.push_back(slot); // valid
+
+msig.emit(my_class()); // problem!
+
+This is a slightly different case of the above where the internals of a parameter could be moved away in a slot, leaving it invalid for all remaining slots.
+It isn't immediately obvious why this would ever be desirable, and a suitable fix isn't obvious to me.
+Simply avoid doing this; it may even be beneficial to add template checks to actively prevent declaring signals which could have rvalue reference parameters.

@@ -154,7 +154,7 @@ namespace boost
         template<int... S, typename... U>
         inline ResultType call_func(seq<S...>, sig3_tuple<U...>& params) const
         {
-          return callback.slot_function()(std::forward<U>(::boost::signals3::detail::get<S>(params))...);
+          return callback.slot_function()(::boost::signals3::detail::get<S>(params)...);
         }
       };
 
@@ -1009,9 +1009,10 @@ namespace boost
                 break;
               }
           }
-        sig3_tuple<U...> params(std::forward<U>(args)...);
-        iterator<U...> begin(boost::move(begin_ptr), tracking_list, params, *this);
-        iterator<U...> end(nullptr, tracking_list, params, *this);
+//        sig3_tuple<U&&...> params(std::forward<U>(args)...);
+        std::tuple<U&&...> params(std::forward<U>(args)...);
+        iterator<U&&...> begin(boost::move(begin_ptr), tracking_list, params, *this);
+        iterator<U&&...> end(nullptr, tracking_list, params, *this);
         return combiner(boost::move(begin), boost::move(end));
       }
 
@@ -1040,9 +1041,9 @@ namespace boost
                 break;
               }
           }
-        sig3_tuple<U...> params(std::forward<U>(args)...);
-        unsafe_iterator<U...> begin(boost::move(begin_ptr), tracking_list, params, *this);
-        unsafe_iterator<U...> end(nullptr, tracking_list, params, *this);
+        sig3_tuple<U&&...> params(std::forward<U>(args)...);
+        unsafe_iterator<U&&...> begin(boost::move(begin_ptr), tracking_list, params, *this);
+        unsafe_iterator<U&&...> end(nullptr, tracking_list, params, *this);
         return combiner(boost::move(begin), boost::move(end));
       }
     };
@@ -1062,11 +1063,11 @@ namespace boost
               FunctionType, ExtendedFunctionType >& sig;
 
     public:
-      template<typename... V>
+//      template<typename... V>
       iterator(sig3_shared_ptr< t_node_base >&& start_node,
                ::boost::signals3::detail::forward_list<
                sig3_shared_ptr< void > >& tracking,
-               sig3_tuple<V...>& params,
+               sig3_tuple<U...>& params,
                signal< ResultType(Args...), Combiner, Group,
                GroupCompare, FunctionType, ExtendedFunctionType >& sig) :
         curr(boost::move(start_node)), tracking(tracking), params(params), sig(sig)
@@ -1153,11 +1154,11 @@ namespace boost
       (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >& sig;
 
     public:
-      template<typename... V>
+//      template<typename... V>
       unsafe_iterator(sig3_shared_ptr< t_node_base >&& start_node,
                       ::boost::signals3::detail::forward_list<
                       sig3_shared_ptr< void > >& tracking,
-                      sig3_tuple<V...>& params,
+                      sig3_tuple<U...>& params,
                       signal< ResultType
                       (Args...), Combiner, Group, GroupCompare, FunctionType, ExtendedFunctionType >&sig) :
         curr(boost::move(start_node)), tracking(tracking), params(params), sig(sig)

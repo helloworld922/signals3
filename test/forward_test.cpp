@@ -56,26 +56,36 @@ namespace boost
           std::cout << "handler(test_class)" << std::endl;
         }
         
-        void handler2(test_class&)
+        void handler2(test_class&&)
         {
           std::cout << "handler(const test_class&)" << std::endl;
         }
         
-        void handler3(test_class&&)
+        void handler3(int* arg)
         {
-          std::cout << "handler(test_class&&)" << std::endl;
+          std::cout << "handler(int*)" << std::endl;
+          std:: cout << arg << std::endl;
+        }
+        
+        void handler4(std::vector<int>& vals)
+        {
+          std::cout << "handler(vector<int>)" << std::endl;
+          std::cout << vals.size() << std::endl;
         }
 
         void test(void)
         {
-          boost::signals3::signal<void(test_class&)> sig1;
+//          boost::signals3::signal<void(test_class&&)> sig1;
           
-          sig1.push_back(handler1);
-          sig1.push_back(handler1);
-          sig1.push_back(handler2);
-          sig1.push_back(handler2);
+//          std::vector<int> vals = {1, 2, 3};
+//          sig1.push_back(handler2);
+//          sig1.push_back(handler2);
+//          sig1.push_back(handler2);
+//          sig1.push_back(handler2);
 //          sig1.push_back(handler3);
-          test_class a;
+//          test_class a;
+//          sig1.emit_unsafe(test_class());
+//          std::cout << vals.size() << std::endl;
           
 //          test_class &b = a;
 //          test_class &&c = boost::move(a);
